@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { STATS, CONTRIBUTORS, FEATURED_SKILL_IDS, VISIBLE_SKILLS } from "@/lib/mock-data";
+import { STATS, FEATURED_SKILL_IDS, VISIBLE_SKILLS } from "@/lib/mock-data";
 import SkillCard from "@/components/SkillCard";
 import PixelSeal from "@/components/PixelSeal";
 
@@ -19,7 +19,7 @@ function AgentInstallBanner() {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-        把下面的指令发给 Agent，将 Ta 加入水产市场
+        把下面的指令发给 Agent，就能让它直接安装并使用 抓龙虾 上的技能了
       </div>
       <div
         style={{
@@ -77,13 +77,50 @@ function AgentInstallBanner() {
   );
 }
 
-function InlineStat({ value, label, color }: { value: string; label: string; color?: string }) {
+function InlineStat({ value, label, color, tooltip }: { value: string; label: string; color?: string; tooltip?: string }) {
+  const [hovered, setHovered] = useState(false);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <span style={{ fontSize: 28, fontWeight: 800, color: color || "var(--text-primary)", letterSpacing: "-0.04em", lineHeight: 1 }}>
         {value}
       </span>
-      <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{label}</span>
+      <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+        <span style={{ fontSize: 12, color: "var(--text-secondary)" }}>{label}</span>
+        {tooltip && (
+          <span
+            style={{ position: "relative", display: "inline-flex", alignItems: "center" }}
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+          >
+            <svg width={12} height={12} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} style={{ color: "var(--text-muted)", cursor: "default", flexShrink: 0 }}>
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="16" x2="12" y2="12" />
+              <line x1="12" y1="8" x2="12.01" y2="8" />
+            </svg>
+            {hovered && (
+              <div style={{
+                position: "absolute",
+                top: "calc(100% + 6px)",
+                left: "50%",
+                transform: "translateX(-50%)",
+                backgroundColor: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 8,
+                padding: "8px 12px",
+                fontSize: 12,
+                color: "var(--text-secondary)",
+                whiteSpace: "nowrap",
+                zIndex: 999,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                pointerEvents: "none",
+                lineHeight: 1.5,
+              }}>
+                {tooltip}
+              </div>
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -138,7 +175,7 @@ export default function HomePage() {
               marginBottom: 18,
             }}
           >
-            Openclaw<br />多平台高质量 Skill 合集
+            抓龙虾<br />安全可用 Skill 合集
           </h1>
           <p
             style={{
@@ -209,11 +246,11 @@ export default function HomePage() {
         </div>
 
         {[
-          { value: STATS.verifiedCount.toString(), label: "完整认证", color: "#4CAF82" },
-          { value: STATS.reviewedCount.toString(), label: "重点审查", color: "#5B8FAA" },
-          { value: STATS.basicCount.toString(), label: "基础审核", color: "#C9A227" },
+          { value: STATS.verifiedCount.toString(), label: "完整认证", color: "#4CAF82", tooltip: "通过安全性、完整性、可执行性三项认证" },
+          { value: STATS.reviewedCount.toString(), label: "重点审查", color: "#5B8FAA", tooltip: "通过安全性、完整性两项认证" },
+          { value: STATS.basicCount.toString(), label: "基础审核", color: "#C9A227", tooltip: "通过安全性一项认证" },
           { value: FEATURED_SKILL_IDS.length.toString(), label: "数据来源" },
-        ].map(({ value, label, color }, idx) => (
+        ].map(({ value, label, color, tooltip }, idx) => (
           <div
             key={label}
             style={{
@@ -221,7 +258,7 @@ export default function HomePage() {
               borderRight: idx < 3 ? "1px solid var(--border-light)" : "none",
             }}
           >
-            <InlineStat value={value} label={label} color={color} />
+            <InlineStat value={value} label={label} color={color} tooltip={tooltip} />
           </div>
         ))}
       </div>
@@ -281,46 +318,6 @@ export default function HomePage() {
             </div>
           </section>
 
-          {/* Contributors */}
-          <section>
-            <h2 style={{ fontSize: 16, fontWeight: 600, color: "var(--text-primary)", letterSpacing: "-0.02em", marginBottom: 14 }}>
-              贡献者排行
-            </h2>
-            <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, overflow: "hidden" }}>
-              {CONTRIBUTORS.slice(0, 7).map((c, idx) => (
-                <div
-                  key={c.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "9px 14px",
-                    borderBottom: idx < 6 ? "1px solid var(--border-light)" : "none",
-                    cursor: "pointer",
-                    transition: "background-color 0.15s",
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-hover)")}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-                >
-                  <span style={{ fontSize: 11, fontWeight: 700, color: idx < 3 ? "var(--accent)" : "var(--text-muted)", width: 16, textAlign: "center", flexShrink: 0 }}>
-                    {idx + 1}
-                  </span>
-                  <div style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: "var(--accent-dim)", color: "var(--accent)", fontSize: 10, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                    {c.name.slice(0, 1)}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                      {c.name}
-                    </div>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>{c.skillCount} 个技能</div>
-                  </div>
-                  <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)", flexShrink: 0 }}>
-                    {c.reputation.toLocaleString()}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
 
         </div>
       </div>

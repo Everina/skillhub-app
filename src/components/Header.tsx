@@ -16,6 +16,14 @@ export default function Header() {
     }
   }
 
+  function handleFocus() {
+    if (query.trim()) {
+      router.push(`/explore?q=${encodeURIComponent(query.trim())}`);
+    } else {
+      router.push("/explore");
+    }
+  }
+
   return (
     <header
       style={{
@@ -123,8 +131,8 @@ export default function Header() {
                 transition: "border-color 0.15s",
               }}
               onFocus={(e) => {
-                e.currentTarget.style.borderColor = "var(--border-focus)";
-                e.currentTarget.style.backgroundColor = "var(--bg-card)";
+                e.currentTarget.blur();
+                handleFocus();
               }}
               onBlur={(e) => {
                 e.currentTarget.style.borderColor = "var(--border)";

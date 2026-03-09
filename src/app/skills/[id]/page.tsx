@@ -4,32 +4,16 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SKILLS, VISIBLE_SKILLS } from "@/lib/mock-data";
-import { SafetyStatus, SkillDependency, SkillScore, SourcePlatform } from "@/lib/types";
+import { SafetyStatus, CertStepStatus, SkillDependency, SourcePlatform } from "@/lib/types";
 import SkillCard from "@/components/SkillCard";
 
 const PLATFORM_CONFIG: Record<SourcePlatform, { label: string; color: string; bg: string }> = {
-  github:       { label: "GitHub",       color: "#c9d1d9", bg: "#21262d" },
-  skillssh:     { label: "Skills.sh",    color: "#00D26A", bg: "#0d1117" },
-  clawhub:      { label: "ClawHub",      color: "#a5b4fc", bg: "#1e1b4b" },
-  openclaw_cn:  { label: "OpenClaw CN",  color: "#f87171", bg: "#2d1515" },
-  openclawmp:   { label: "OpenClaw MP",  color: "#c4b5fd", bg: "#1e1232" },
+  github:      { label: "开源平台", color: "#8b949e", bg: "rgba(139,148,158,0.1)" },
+  npm:         { label: "开源平台", color: "#8b949e", bg: "rgba(139,148,158,0.1)" },
+  pypi:        { label: "开源平台", color: "#8b949e", bg: "rgba(139,148,158,0.1)" },
+  huggingface: { label: "开源平台", color: "#8b949e", bg: "rgba(139,148,158,0.1)" },
+  smithery:    { label: "开源平台", color: "#8b949e", bg: "rgba(139,148,158,0.1)" },
 };
-function AuthorAvatar({ name, size = 36 }: { name: string; size?: number }) {
-  const colors = ["#5B8FAA", "#7A6FAA", "#6AAA7A", "#AA8A5B", "#AA5B6A"];
-  const colorIndex = name.charCodeAt(0) % colors.length;
-  return (
-    <div
-      style={{
-        width: size, height: size, borderRadius: "50%",
-        backgroundColor: colors[colorIndex], color: "#fff",
-        fontSize: size * 0.42, fontWeight: 600,
-        display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
-      }}
-    >
-      {name.slice(0, 1)}
-    </div>
-  );
-}
 
 function SimpleMarkdown({ content }: { content: string }) {
   const lines = content.split("\n");
@@ -62,132 +46,104 @@ function SimpleMarkdown({ content }: { content: string }) {
   return <div>{elements}</div>;
 }
 
-function ScoreGauge({ score }: { score: SkillScore }) {
-  const size = 88;
-  const r = (size - 6) / 2;
-  const circ = 2 * Math.PI * r;
-  const fill = (score.overall / 100) * circ;
-  const color = score.overall >= 85 ? "#4CAF82" : score.overall >= 70 ? "#5B8FAA" : "#9B9B9B";
 
-  const dims = [
-    { key: "安全性", val: score.safety, desc: "拦截高危操作指令，评估 Prompt Injection 防护与权限收敛能力" },
-    { key: "完整性", val: score.completeness, desc: "依赖树遍历，验证前置依赖包、环境变量与 OS 约束声明" },
-    { key: "可执行性", val: score.executability, desc: "沙盒环境实际运行，捕获工具调用幻觉与运行时崩溃" },
-  ];
+const CERT_STEPS = [
+  { key: "safety",        label: "安全性" },
+  { key: "completeness",  label: "完整性" },
+  { key: "executability", label: "可执行性" },
+] as const;
+
+function stepDesc(st: CertStepStatus, label: string): string {
+  if (st === "passed") return `${label}已验证`;
+  if (st === "failed") return `${label}未通过`;
+  return `${label}审核进行中`;
+}
+
+function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certifiedSteps: { safety: CertStepStatus; completeness: CertStepStatus; executability: CertStepStatus } } }) {
+  const status = skill.safetyStatus;
+  const steps = skill.certifiedSteps;
+
+  const sub = CERT_STEPS.map((s) => stepDesc(steps[s.key], s.label)).join("，");
+
+  const cfg =
+    status === "verified" ? {
+      label: "完整认证", color: "#4CAF82", bg: "rgba(76,175,130,0.08)", border: "rgba(76,175,130,0.25)",
+      headline: "已通过全部 3 项认证",
+      recommend: "非常推荐",
+      recommendBg: "rgba(76,175,130,0.15)",
+    } :
+    status === "reviewed" ? {
+      label: "重点审查", color: "#5B8FAA", bg: "rgba(91,143,170,0.08)", border: "rgba(91,143,170,0.25)",
+      headline: "已通过 2 项认证",
+      recommend: "推荐使用",
+      recommendBg: "rgba(91,143,170,0.15)",
+    } :
+    status === "basic" ? {
+      label: "基础审核", color: "#C9A227", bg: "rgba(201,162,39,0.08)", border: "rgba(201,162,39,0.25)",
+      headline: "已通过 1 项认证",
+      recommend: "谨慎使用",
+      recommendBg: "rgba(201,162,39,0.15)",
+    } : {
+      label: "待审核", color: "#9B9B9B", bg: "rgba(155,155,155,0.06)", border: "rgba(155,155,155,0.2)",
+      headline: "尚未进入审核队列",
+      recommend: "暂不推荐",
+      recommendBg: "rgba(155,155,155,0.12)",
+    };
 
   return (
-    <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "20px" }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 16 }}>
-        技能评分
-      </div>
-
-      {/* Gauge */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20 }}>
-        <div style={{ position: "relative", width: size, height: size, flexShrink: 0 }}>
-          <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--border)" strokeWidth={5} />
-            <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth={5}
-              strokeDasharray={`${fill} ${circ - fill}`} strokeLinecap="round" />
-          </svg>
-          <div style={{
-            position: "absolute", inset: 0,
-            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+    <div style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 12, overflow: "hidden" }}>
+      {/* Header bar */}
+      <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${cfg.border}` }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+          <span style={{
+            fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase",
+            color: cfg.color, backgroundColor: cfg.recommendBg,
+            padding: "3px 9px", borderRadius: 20,
           }}>
-            <div style={{ fontSize: 24, fontWeight: 800, color, letterSpacing: "-0.04em", lineHeight: 1 }}>{score.overall}</div>
-            <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>/ 100</div>
-          </div>
+            {cfg.label}
+          </span>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: cfg.color,
+            backgroundColor: cfg.recommendBg, padding: "3px 9px", borderRadius: 20,
+          }}>
+            {cfg.recommend}
+          </span>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)", marginBottom: 4 }}>
-            {score.overall >= 85 ? "优质技能" : score.overall >= 70 ? "良好技能" : "需要改进"}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>
-            综合安全性、完整性、可用性三维度评估
-          </div>
-        </div>
+        <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)", marginBottom: 3 }}>{cfg.headline}</div>
+        <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{sub}</div>
       </div>
 
-      {/* Sub-dimensions */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {dims.map(({ key, val, desc }) => {
-          const c = val >= 85 ? "#4CAF82" : val >= 70 ? "#5B8FAA" : "#9B9B9B";
+      {/* Steps */}
+      <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+        {CERT_STEPS.map((s) => {
+          const st = steps[s.key];
+          const isPassed = st === "passed";
+          const isFailed = st === "failed";
+          const iconColor = isPassed ? cfg.color : isFailed ? "#E05C5C" : "#9B9B9B";
+          const statusLabel = isPassed ? "已通过" : isFailed ? "未通过" : "审核中";
+          const bgColor = isPassed ? cfg.recommendBg : isFailed ? "rgba(224,92,92,0.1)" : "rgba(155,155,155,0.1)";
+          const borderColor = isPassed ? cfg.border : isFailed ? "rgba(224,92,92,0.3)" : "rgba(155,155,155,0.2)";
           return (
-            <div key={key}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 5 }}>
-                <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>{key}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: c }}>{val}</span>
+            <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{
+                width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
+                backgroundColor: bgColor, border: `1px solid ${borderColor}`,
+                display: "flex", alignItems: "center", justifyContent: "center",
+              }}>
+                {isPassed && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={cfg.color} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
+                {isFailed && <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="#E05C5C" strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                {st === "pending" && <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#9B9B9B", opacity: 0.5 }} />}
               </div>
-              <div style={{ height: 5, backgroundColor: "var(--border)", borderRadius: 3, overflow: "hidden" }}>
-                <div style={{ height: "100%", width: `${val}%`, backgroundColor: c, borderRadius: 3 }} />
-              </div>
-              <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 3 }}>{desc}</div>
+              <span style={{ fontSize: 13, color: isPassed ? "var(--text-primary)" : "var(--text-muted)", fontWeight: isPassed ? 500 : 400 }}>
+                {s.label}
+              </span>
+              <span style={{ marginLeft: "auto", fontSize: 11, color: iconColor, fontWeight: 500 }}>
+                {statusLabel}
+              </span>
             </div>
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function SafetyPanel({ status }: { status: SafetyStatus }) {
-  const configs = {
-    verified: {
-      label: "完整认证", color: "#4CAF82", bg: "rgba(76,175,130,0.08)", border: "rgba(76,175,130,0.25)",
-      title: "已通过完整认证",
-      items: [
-        "安全性：拦截 rm -rf 等高危指令，通过 Prompt Injection 边界测试",
-        "完整性：语法层依赖树遍历，验证所有前置依赖、环境变量与 OS 约束",
-        "可执行性：沙盒容器实际运行，捕获工具调用幻觉与运行时崩溃",
-      ],
-    },
-    reviewed: {
-      label: "重点审查", color: "#5B8FAA", bg: "rgba(91,143,170,0.08)", border: "rgba(91,143,170,0.25)",
-      title: "已完成重点审查",
-      items: [
-        "安全性：已完成高危指令拦截测试 ✓",
-        "完整性：依赖声明经语法层扫描验证 ✓",
-        "可执行性：沙盒运行验证排队中",
-      ],
-    },
-    basic: {
-      label: "基础审核", color: "#C9A227", bg: "rgba(201,162,39,0.08)", border: "rgba(201,162,39,0.25)",
-      title: "已完成基础审核",
-      items: [
-        "安全性：已完成高危指令拦截测试 ✓",
-        "完整性：依赖树扫描排队中",
-        "可执行性：沙盒运行验证排队中",
-      ],
-    },
-    pending: {
-      label: "待审核", color: "#9B9B9B", bg: "rgba(155,155,155,0.06)", border: "rgba(155,155,155,0.2)",
-      title: "等待进入审核队列",
-      items: [
-        "安全性测试：排队中",
-        "完整性扫描：排队中",
-        "可执行性沙盒验证：排队中",
-      ],
-    },
-  };
-  const config = configs[status];
-
-  return (
-    <div style={{ backgroundColor: config.bg, border: `1px solid ${config.border}`, borderRadius: 10, padding: "16px" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-        <span style={{ fontSize: 11, fontWeight: 600, color: config.color, backgroundColor: `${config.bg}`, border: `1px solid ${config.border}`, padding: "2px 8px", borderRadius: 20 }}>
-          {config.label}
-        </span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{config.title}</span>
-      </div>
-      <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "flex", flexDirection: "column", gap: 6 }}>
-        {config.items.map((item, i) => (
-          <li key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>
-            <span style={{ color: config.color, flexShrink: 0, marginTop: 1 }}>
-              {status === "pending" ? "·" : "✓"}
-            </span>
-            {item}
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }
@@ -287,8 +243,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [copied, setCopied] = useState(false);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [framework, setFramework] = useState<"openclaw" | "copaw">("openclaw");
+  const currentCommand = framework === "openclaw"
+    ? `/skill install ${skill.name}`
+    : `copaw add ${skill.name}`;
   const handleCopy = () => {
-    navigator.clipboard.writeText(skill.installCommand);
+    navigator.clipboard.writeText(currentCommand);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -346,32 +307,65 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
           </div>
 
-          {/* Safety panel */}
-          <div style={{ marginBottom: 20 }}>
-            <SafetyPanel status={skill.safetyStatus} />
-          </div>
 
           {/* Install command */}
-          <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
-              <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>安装</span>
-              <code style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {skill.installCommand}
-              </code>
+          <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 20px", marginBottom: 20 }}>
+            {/* Framework selector */}
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
+              <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, marginRight: 2 }}>框架</span>
+              {(["openclaw", "copaw"] as const).map((fw) => {
+                const active = framework === fw;
+                return (
+                  <button
+                    key={fw}
+                    onClick={() => setFramework(fw)}
+                    style={{
+                      background: active ? "var(--accent-dim)" : "none",
+                      border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
+                      borderRadius: 6, padding: "3px 10px", cursor: "pointer",
+                      fontSize: 12, fontWeight: active ? 600 : 400,
+                      color: active ? "var(--accent)" : "var(--text-muted)",
+                      transition: "all 0.12s",
+                    }}
+                  >
+                    {fw === "openclaw" ? "OpenClaw" : "CoPaw"}
+                  </button>
+                );
+              })}
             </div>
-            <button
-              onClick={handleCopy}
-              style={{
-                flexShrink: 0, background: "none", border: "1px solid var(--border)",
-                borderRadius: 6, padding: "5px 12px", cursor: "pointer",
-                fontSize: 12, fontWeight: 500,
-                color: copied ? "#4CAF82" : "var(--text-secondary)",
-                borderColor: copied ? "#4CAF82" : "var(--border)",
-                transition: "all 0.15s",
-              }}
-            >
-              {copied ? "已复制 ✓" : "复制"}
-            </button>
+            {/* Command row */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 10,
+              backgroundColor: "var(--accent-dim)", border: "none",
+              borderRadius: 8, padding: "8px 14px",
+            }}>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>安装</span>
+              <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {currentCommand}
+              </code>
+              <button
+                onClick={handleCopy}
+                title={copied ? "已复制" : "复制"}
+                style={{
+                  flexShrink: 0, background: "none", border: "none",
+                  padding: 2, cursor: "pointer",
+                  color: copied ? "#4CAF82" : "var(--accent)",
+                  display: "flex", alignItems: "center",
+                  transition: "color 0.15s",
+                }}
+              >
+                {copied ? (
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                )}
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}
@@ -471,20 +465,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         {/* ── Right sidebar ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
-          {/* Score gauge */}
-          <ScoreGauge score={skill.score} />
-
-          {/* Author */}
-          <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.07em", textTransform: "uppercase", marginBottom: 12 }}>作者</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <AuthorAvatar name={skill.author} size={36} />
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{skill.author}</div>
-                <div style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 2 }}>信誉 {skill.authorReputation.toLocaleString()}</div>
-              </div>
-            </div>
-          </div>
+          {/* Safety panel */}
+          <SafetyPanel skill={skill} />
 
           {/* Meta */}
           <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px", display: "flex", flexDirection: "column", gap: 10 }}>

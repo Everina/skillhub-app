@@ -1,23 +1,18 @@
-export type SourcePlatform = "github" | "skillssh" | "clawhub" | "openclaw_cn" | "openclawmp";
+export type SourcePlatform = "github" | "npm" | "pypi" | "huggingface" | "smithery";
 
-export interface SkillScore {
-  overall: number;       // 0–100 composite
-  safety: number;        // 安全性 0–100
-  completeness: number;  // 完整性 0–100
-  executability: number; // 可执行性 0–100
-}
+export type CertStepStatus = "passed" | "pending" | "failed";
 
 export interface CertifiedSteps {
-  safety: boolean;       // 安全性：拦截高危指令 + Prompt Injection 防护
-  completeness: boolean; // 完整性：依赖树遍历 + 环境声明验证
-  executability: boolean;// 可执行性：沙盒容器实际运行验证
+  safety: CertStepStatus;       // 安全性：拦截高危指令 + Prompt Injection 防护
+  completeness: CertStepStatus; // 完整性：依赖树遍历 + 环境声明验证
+  executability: CertStepStatus;// 可执行性：沙盒容器实际运行验证
 }
 
 // 从 certifiedSteps 派生，方便过滤和显示
 export type SafetyStatus = "verified" | "reviewed" | "basic" | "pending";
 
 export function deriveStatus(steps: CertifiedSteps): SafetyStatus {
-  const count = [steps.safety, steps.completeness, steps.executability].filter(Boolean).length;
+  const count = [steps.safety, steps.completeness, steps.executability].filter(s => s === "passed").length;
   if (count === 3) return "verified";
   if (count === 2) return "reviewed";
   if (count === 1) return "basic";
@@ -53,7 +48,6 @@ export interface Skill {
   sourceUrl: string;
   ecosystems: string[];  // 对接的生态平台，如飞书、小红书、GitHub
   dependencies?: SkillDependency[];
-  score: SkillScore;
   certifiedSteps: CertifiedSteps;
   safetyStatus: SafetyStatus; // derived from certifiedSteps for filtering
 }

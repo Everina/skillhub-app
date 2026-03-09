@@ -15,7 +15,6 @@ const SAFETY_OPTIONS: { value: SafetyStatus | "all"; label: string; color?: stri
 ];
 
 const SORT_OPTIONS = [
-  { value: "score", label: "最高评分" },
   { value: "popular", label: "最受欢迎" },
   { value: "newest", label: "最新发布" },
   { value: "stars", label: "最多收藏" },
@@ -30,7 +29,9 @@ function ExploreContent() {
   const [safetyFilter, setSafetyFilter] = useState<SafetyStatus | "all">("all");
   const [categoryFilter, setCategoryFilter] = useState("全部");
   const [ecosystemFilter, setEcosystemFilter] = useState("全部");
-  const [sort, setSort] = useState(initialSort);
+  const [sort, setSort] = useState(initialSort === "score" ? "popular" : initialSort);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 12;
 
   const results = useMemo(() => {
     let list = [...VISIBLE_SKILLS];
@@ -59,13 +60,17 @@ function ExploreContent() {
       list = list.filter((s) => s.ecosystems.includes(ecosystemFilter));
     }
 
-    if (sort === "score") list.sort((a, b) => b.score.overall - a.score.overall);
-    else if (sort === "popular") list.sort((a, b) => b.installs - a.installs);
+    if (sort === "popular") list.sort((a, b) => b.installs - a.installs);
     else if (sort === "newest") list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     else if (sort === "stars") list.sort((a, b) => b.totalStars - a.totalStars);
 
     return list;
   }, [query, safetyFilter, categoryFilter, ecosystemFilter, sort]);
+
+  const totalPages = Math.ceil(results.length / PAGE_SIZE);
+  const pagedResults = results.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  function resetPage() { setPage(1); }
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 24px 80px" }}>
@@ -91,8 +96,9 @@ function ExploreContent() {
           </svg>
           <input
             type="text"
+            autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => { setQuery(e.target.value); resetPage(); }}
             placeholder="搜索技能名称、标签、作者..."
             style={{
               width: "100%", height: 38, paddingLeft: 36, paddingRight: 12,
@@ -112,7 +118,7 @@ function ExploreContent() {
 
         <select
           value={sort}
-          onChange={(e) => setSort(e.target.value)}
+          onChange={(e) => { setSort(e.target.value); resetPage(); }}
           style={{
             height: 38, padding: "0 12px", fontSize: 13,
             color: "var(--text-secondary)", backgroundColor: "var(--bg-card)",
@@ -146,7 +152,7 @@ function ExploreContent() {
                 return (
                   <button
                     key={opt.value}
-                    onClick={() => setSafetyFilter(opt.value)}
+                    onClick={() => { setSafetyFilter(opt.value); resetPage(); }}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       padding: "6px 10px", borderRadius: 7, border: "none",
@@ -180,7 +186,7 @@ function ExploreContent() {
                 return (
                   <button
                     key={cat}
-                    onClick={() => setCategoryFilter(cat)}
+                    onClick={() => { setCategoryFilter(cat); resetPage(); }}
                     style={{
                       display: "block", width: "100%",
                       padding: "6px 10px", borderRadius: 7, border: "none",
@@ -213,7 +219,7 @@ function ExploreContent() {
                 return (
                   <button
                     key={ecosystem}
-                    onClick={() => setEcosystemFilter(ecosystem)}
+                    onClick={() => { setEcosystemFilter(ecosystem); resetPage(); }}
                     style={{
                       display: "flex", alignItems: "center", justifyContent: "space-between",
                       padding: "6px 10px", borderRadius: 7, border: "none",
@@ -243,11 +249,74 @@ function ExploreContent() {
               <div style={{ fontSize: 13 }}>试试换个关键词或清除筛选条件</div>
             </div>
           ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-              {results.map((skill) => (
-                <SkillCard key={skill.id} skill={skill} />
-              ))}
-            </div>
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
+                {pagedResults.map((skill) => (
+                  <SkillCard key={skill.id} skill={skill} />
+                ))}
+              </div>
+
+              {totalPages > 1 && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 6, marginTop: 32 }}>
+                  <button
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    style={{
+                      height: 32, minWidth: 32, padding: "0 10px",
+                      border: "1px solid var(--border)", borderRadius: 7,
+                      backgroundColor: "var(--bg-card)", color: "var(--text-secondary)",
+                      fontSize: 13, cursor: page === 1 ? "not-allowed" : "pointer",
+                      opacity: page === 1 ? 0.4 : 1,
+                    }}
+                  >
+                    ←
+                  </button>
+
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => {
+                    const isActive = p === page;
+                    const isEllipsis = totalPages > 7 && Math.abs(p - page) > 2 && p !== 1 && p !== totalPages;
+                    if (isEllipsis) return null;
+                    const prevIsEllipsis = totalPages > 7 && Math.abs((p - 1) - page) > 2 && (p - 1) !== 1 && (p - 1) !== totalPages && p !== 1;
+                    return (
+                      <span key={p} style={{ display: "contents" }}>
+                        {prevIsEllipsis && <span style={{ fontSize: 13, color: "var(--text-muted)", padding: "0 4px" }}>…</span>}
+                        <button
+                          onClick={() => setPage(p)}
+                          style={{
+                            height: 32, minWidth: 32, padding: "0 10px",
+                            border: "1px solid var(--border)", borderRadius: 7,
+                            backgroundColor: isActive ? "var(--accent)" : "var(--bg-card)",
+                            color: isActive ? "#fff" : "var(--text-secondary)",
+                            fontSize: 13, fontWeight: isActive ? 600 : 400,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {p}
+                        </button>
+                      </span>
+                    );
+                  })}
+
+                  <button
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                    style={{
+                      height: 32, minWidth: 32, padding: "0 10px",
+                      border: "1px solid var(--border)", borderRadius: 7,
+                      backgroundColor: "var(--bg-card)", color: "var(--text-secondary)",
+                      fontSize: 13, cursor: page === totalPages ? "not-allowed" : "pointer",
+                      opacity: page === totalPages ? 0.4 : 1,
+                    }}
+                  >
+                    →
+                  </button>
+
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", marginLeft: 8 }}>
+                    第 {page} / {totalPages} 页，共 {results.length} 个
+                  </span>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
