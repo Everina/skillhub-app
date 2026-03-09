@@ -285,6 +285,13 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments">("overview");
   const deps = skill.dependencies ?? [];
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [copied, setCopied] = useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(skill.installCommand);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "36px 24px 80px" }}>
@@ -342,6 +349,29 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
           {/* Safety panel */}
           <div style={{ marginBottom: 20 }}>
             <SafetyPanel status={skill.safetyStatus} />
+          </div>
+
+          {/* Install command */}
+          <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "16px 20px", marginBottom: 20, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+              <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>安装</span>
+              <code style={{ fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {skill.installCommand}
+              </code>
+            </div>
+            <button
+              onClick={handleCopy}
+              style={{
+                flexShrink: 0, background: "none", border: "1px solid var(--border)",
+                borderRadius: 6, padding: "5px 12px", cursor: "pointer",
+                fontSize: 12, fontWeight: 500,
+                color: copied ? "#4CAF82" : "var(--text-secondary)",
+                borderColor: copied ? "#4CAF82" : "var(--border)",
+                transition: "all 0.15s",
+              }}
+            >
+              {copied ? "已复制 ✓" : "复制"}
+            </button>
           </div>
 
           {/* Tabs */}
