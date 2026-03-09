@@ -1,26 +1,78 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Backgrounds */
+  --bg-page: #F5F0E8;
+  --bg-secondary: #EDE8DC;
+  --bg-card: #FEFCF8;
+  --bg-hover: #F0EBE0;
+  --bg-input: #FEFCF8;
+
+  /* Borders */
+  --border: #DDD8CE;
+  --border-light: #E8E3D8;
+  --border-focus: #5B8FAA;
+
+  /* Text */
+  --text-primary: #2D2D2D;
+  --text-secondary: #6B6B6B;
+  --text-muted: #9B9B9B;
+  --text-inverse: #FEFCF8;
+
+  /* Seal blue-gray accent */
+  --accent: #5B8FAA;
+  --accent-hover: #4A7A95;
+  --accent-light: #7BABC4;
+  --accent-dim: rgba(91, 143, 170, 0.12);
+  --accent-dim-hover: rgba(91, 143, 170, 0.2);
+
+  /* Type colors */
+  --type-skill: #5B8FAA;
+  --type-skill-bg: rgba(91, 143, 170, 0.1);
+  --type-experience: #7A6FAA;
+  --type-experience-bg: rgba(122, 111, 170, 0.1);
+  --type-plugin: #6AAA7A;
+  --type-plugin-bg: rgba(106, 170, 122, 0.1);
+  --type-channel: #AA8A5B;
+  --type-channel-bg: rgba(170, 138, 91, 0.1);
+  --type-trigger: #AA5B6A;
+  --type-trigger-bg: rgba(170, 91, 106, 0.1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+code, pre {
+  font-family: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
