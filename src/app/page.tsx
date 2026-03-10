@@ -159,7 +159,7 @@ export default function HomePage() {
               padding: "4px 10px",
               borderRadius: 20,
               marginBottom: 22,
-              fontWeight: 500,
+              fontWeight: 400,
             }}
           >
             <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#4CAF82", display: "inline-block" }} />
@@ -216,7 +216,7 @@ export default function HomePage() {
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 16 }}>
           <Pixellobster
-            width={550}
+            width={500}
             height="auto"
             aria-label="Pixel lobster"
             style={{ display: "block", maxWidth: "100%", height: "auto" }}
