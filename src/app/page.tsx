@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { STATS, FEATURED_SKILL_IDS, VISIBLE_SKILLS } from "@/lib/mock-data";
 import SkillCard from "@/components/SkillCard";
-import PixelSeal from "@/components/PixelSeal";
+import Pixellobster from "@/components/Pixellobster";
 
 const AGENT_INSTALL_CMD = `帮我安装技能，命令行指令是 curl -sL https://openclawmp.cc/api/v1/install.sh | sh`;
 
@@ -19,7 +19,7 @@ function AgentInstallBanner() {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-        把下面的指令发给 Agent，就能让它直接安装并使用 抓龙虾 上的技能了
+        把下面的指令发给 Agent，就能让它直接安装并使用 虾王 上的技能了
       </div>
       <div
         style={{
@@ -175,7 +175,7 @@ export default function HomePage() {
               marginBottom: 18,
             }}
           >
-            抓龙虾<br />安全可用 Skill 合集
+            虾王 <br />安全可用 Skill 合集
           </h1>
           <p
             style={{
@@ -215,7 +215,12 @@ export default function HomePage() {
         </div>
 
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 16 }}>
-          <PixelSeal scale={14} />
+          <Pixellobster
+            width={550}
+            height="auto"
+            aria-label="Pixel lobster"
+            style={{ display: "block", maxWidth: "100%", height: "auto" }}
+          />
         </div>
         </div>
       </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import Pixellobster from "@/components/Pixellobster";
 
 export default function Header() {
   const pathname = usePathname();
@@ -48,7 +49,12 @@ export default function Header() {
       >
         {/* Logo */}
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: 20 }}>🦭</span>
+          <Pixellobster
+            width={28}
+            height="auto"
+            aria-label="Pixel lobster logo"
+            style={{ display: "block", width: 28, height: "auto", flexShrink: 0 }}
+          />
           <span
             style={{
               fontSize: 15,
@@ -57,7 +63,7 @@ export default function Header() {
               letterSpacing: "-0.02em",
             }}
           >
-            SkillHub
+            虾王
           </span>
         </Link>
 

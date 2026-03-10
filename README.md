@@ -1,6 +1,6 @@
-# SkillHub — 安全可用的 Claude Skills
+# 虾王 — 安全可用的 Claude Skills
 
-SkillHub 是面向 Openclaw 生态的技能市集，提供技能的发现、安装与认证信息展示。所有上架技能均经过安全性审核。
+虾王 是面向 Openclaw 生态的技能市集，提供技能的发现、安装与认证信息展示。所有上架技能均经过安全性审核。
 
 ## 认证体系
 

@@ -3,7 +3,7 @@ import "./globals.css";
 import Header from "@/components/Header";
 
 export const metadata: Metadata = {
-  title: "SkillHub — AI Agent 技能市场",
+  title: "虾王 — AI Agent 技能市场",
   description: "发现、安装和分享 AI Agent 技能、插件和经验",
 };
 
