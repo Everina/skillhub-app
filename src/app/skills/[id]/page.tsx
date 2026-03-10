@@ -245,11 +245,19 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [copied, setCopied] = useState(false);
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [framework, setFramework] = useState<"openclaw" | "copaw">("openclaw");
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [bundleSkillFinder, setBundleSkillFinder] = useState(true);
+
+  const isSkillFinder = skill.name === "skill-finder";
+  const skillFinderCmd = framework === "openclaw" ? `/skill install skill-finder` : `copaw add skill-finder`;
   const currentCommand = framework === "openclaw"
     ? `/skill install ${skill.name}`
     : `copaw add ${skill.name}`;
   const handleCopy = () => {
-    navigator.clipboard.writeText(currentCommand);
+    const textToCopy = (!isSkillFinder && bundleSkillFinder)
+      ? `${skillFinderCmd}\n${currentCommand}`
+      : currentCommand;
+    navigator.clipboard.writeText(textToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -333,38 +341,98 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 );
               })}
             </div>
-            {/* Command row */}
+
+            {/* SkillFinder bundle checkbox */}
+            {!isSkillFinder && (
+              <label style={{
+                display: "flex", alignItems: "center", gap: 8,
+                marginBottom: 10, cursor: "pointer",
+                padding: "7px 10px",
+                backgroundColor: bundleSkillFinder ? "rgba(76,175,130,0.07)" : "var(--bg-secondary)",
+                border: `1px solid ${bundleSkillFinder ? "rgba(76,175,130,0.3)" : "var(--border-light)"}`,
+                borderRadius: 8,
+                transition: "all 0.15s",
+              }}>
+                <div style={{
+                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
+                  border: `1.5px solid ${bundleSkillFinder ? "#4CAF82" : "var(--border)"}`,
+                  backgroundColor: bundleSkillFinder ? "#4CAF82" : "transparent",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  transition: "all 0.15s",
+                }}>
+                  {bundleSkillFinder && (
+                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  )}
+                </div>
+                <input
+                  type="checkbox"
+                  checked={bundleSkillFinder}
+                  onChange={(e) => setBundleSkillFinder(e.target.checked)}
+                  style={{ display: "none" }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: bundleSkillFinder ? "#4CAF82" : "var(--text-secondary)" }}>
+                    让小龙虾变得更强！
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>
+                    自动发现并推荐最适合任务的 Skills
+                  </span>
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 600, letterSpacing: "0.04em",
+                  color: "#4CAF82", backgroundColor: "rgba(76,175,130,0.12)",
+                  padding: "2px 7px", borderRadius: 10, flexShrink: 0,
+                }}>
+                  推荐
+                </span>
+              </label>
+            )}
+
+            {/* Command row(s) */}
             <div style={{
-              display: "flex", alignItems: "center", gap: 10,
-              backgroundColor: "var(--accent-dim)", border: "none",
-              borderRadius: 8, padding: "8px 14px",
+              backgroundColor: "var(--accent-dim)", borderRadius: 8, padding: "8px 14px",
+              display: "flex", flexDirection: "column", gap: 6,
             }}>
-              <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>安装</span>
-              <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {currentCommand}
-              </code>
-              <button
-                onClick={handleCopy}
-                title={copied ? "已复制" : "复制"}
-                style={{
-                  flexShrink: 0, background: "none", border: "none",
-                  padding: 2, cursor: "pointer",
-                  color: copied ? "#4CAF82" : "var(--accent)",
-                  display: "flex", alignItems: "center",
-                  transition: "color 0.15s",
-                }}
-              >
-                {copied ? (
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                ) : (
-                  <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                )}
-              </button>
+              {!isSkillFinder && bundleSkillFinder && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0, minWidth: 24 }}>安装</span>
+                  <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {skillFinderCmd}
+                  </code>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0, minWidth: 24 }}>
+                  {!isSkillFinder && bundleSkillFinder ? "　　" : "安装"}
+                </span>
+                <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {currentCommand}
+                </code>
+                <button
+                  onClick={handleCopy}
+                  title={copied ? "已复制" : "复制"}
+                  style={{
+                    flexShrink: 0, background: "none", border: "none",
+                    padding: 2, cursor: "pointer",
+                    color: copied ? "#4CAF82" : "var(--accent)",
+                    display: "flex", alignItems: "center",
+                    transition: "color 0.15s",
+                  }}
+                >
+                  {copied ? (
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  ) : (
+                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
