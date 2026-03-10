@@ -2,16 +2,16 @@ import * as React from "react";
 import type { SVGProps } from "react";
 
 const C = {
-  B: "var(--accent)", // body base uses product accent
+  B: "var(--accent-light)", // body base is slightly lighter than the core brand color
   L: "var(--accent-light)", // body highlight follows theme
   D: "#1A3448", // dark outline
-  S: "var(--accent-hover)", // spots/shadows stay in the same theme family
+  S: "var(--accent)", // spots/shadows stay in the same theme family but lighter
   W: "#DCF0FF", // white belly
   w: "#B5D5E5", // belly shadow edge
   E: "#0A1A28", // eye dark
   H: "#FFFFFF", // eye highlight
   N: "#0E2030", // nose
-  F: "var(--accent-hover)", // limbs use deeper brand tone
+  F: "var(--accent)", // limbs keep some contrast without looking too dark
 } as const;
 
 export function SvgConverted(props: SVGProps<SVGSVGElement>) {
