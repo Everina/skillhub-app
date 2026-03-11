@@ -242,24 +242,26 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments">("overview");
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [copied, setCopied] = useState(false);
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [framework, setFramework] = useState<"openclaw" | "copaw">("openclaw");
+  const [mode, setMode] = useState<"human" | "agent">("human");
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [bundleSkillFinder, setBundleSkillFinder] = useState(true);
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const isSkillFinder = skill.name === "skill-finder";
-  const skillFinderCmd = framework === "openclaw" ? `/skill install skill-finder` : `copaw add skill-finder`;
-  const currentCommand = framework === "openclaw"
-    ? `/skill install ${skill.name}`
-    : `copaw add ${skill.name}`;
-  const handleCopy = () => {
-    const textToCopy = (!isSkillFinder && bundleSkillFinder)
-      ? `${skillFinderCmd}\n${currentCommand}`
-      : currentCommand;
-    navigator.clipboard.writeText(textToCopy);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  const CLI_INSTALL_CMD = `curl -fsSL https://skillhub-1251783334.cos.ap-guangzhou.myqcloud.com/install/skillhub.sh | sh`;
+  const CLI_DOCS_URL = `https://skillhub-1388575217.cos.ap-guangzhou.myqcloud.com/install/skillhub.md`;
+  const sfInstallCmd = `skillhub install skill-finder`;
+  const skillInstallCmd = `skillhub install ${skill.name}`;
+  const agentText = isSkillFinder
+    ? `请先检查是否已安装 SkillHub 商店，若未安装，请根据 ${CLI_DOCS_URL} 安装 SkillHub 商店，然后安装 skill-finder 技能。\n\n若已安装，则直接安装 skill-finder 技能。`
+    : bundleSkillFinder
+    ? `请先检查是否已安装 SkillHub 商店，若未安装，请根据 ${CLI_DOCS_URL} 安装 SkillHub 商店，然后依次安装 skill-finder 和 ${skill.name} 技能。\n\n若已安装，则直接依次安装 skill-finder 和 ${skill.name} 技能。`
+    : `请先检查是否已安装 SkillHub 商店，若未安装，请根据 ${CLI_DOCS_URL} 安装 SkillHub 商店，然后安装 ${skill.name} 技能。\n\n若已安装，则直接安装 ${skill.name} 技能。`;
+  const copyText = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
 
   return (
@@ -318,25 +320,30 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
           {/* Install command */}
           <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px 20px", marginBottom: 20 }}>
-            {/* Framework selector */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 10 }}>
-              <span style={{ fontSize: 11, color: "var(--text-muted)", flexShrink: 0, marginRight: 2 }}>框架</span>
-              {(["openclaw", "copaw"] as const).map((fw) => {
-                const active = framework === fw;
+
+            {/* Mode toggle */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 14, backgroundColor: "var(--bg-secondary)", borderRadius: 8, padding: 4 }}>
+              {(["agent", "human"] as const).map((m) => {
+                const active = mode === m;
                 return (
                   <button
-                    key={fw}
-                    onClick={() => setFramework(fw)}
+                    key={m}
+                    onClick={() => setMode(m)}
                     style={{
-                      background: active ? "var(--accent-dim)" : "none",
-                      border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                      borderRadius: 6, padding: "3px 10px", cursor: "pointer",
-                      fontSize: 12, fontWeight: active ? 600 : 400,
-                      color: active ? "var(--accent)" : "var(--text-muted)",
+                      flex: 1, background: active ? "var(--bg-card)" : "none",
+                      border: active ? "1px solid var(--border)" : "1px solid transparent",
+                      borderRadius: 6, padding: "5px 0", cursor: "pointer",
+                      fontSize: 13, fontWeight: active ? 600 : 400,
+                      color: active ? "var(--text-primary)" : "var(--text-muted)",
                       transition: "all 0.12s",
+                      display: "flex", alignItems: "center", justifyContent: "center", gap: 5,
                     }}
                   >
-                    {fw === "openclaw" ? "OpenClaw" : "CoPaw"}
+                    {m === "agent" ? (
+                      <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>我是 Agent</>
+                    ) : (
+                      <><svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>我是 Human</>
+                    )}
                   </button>
                 );
               })}
@@ -346,94 +353,83 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             {!isSkillFinder && (
               <label style={{
                 display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 10, cursor: "pointer",
+                marginBottom: 12, cursor: "pointer",
                 padding: "7px 10px",
                 backgroundColor: bundleSkillFinder ? "rgba(76,175,130,0.07)" : "var(--bg-secondary)",
                 border: `1px solid ${bundleSkillFinder ? "rgba(76,175,130,0.3)" : "var(--border-light)"}`,
-                borderRadius: 8,
-                transition: "all 0.15s",
+                borderRadius: 8, transition: "all 0.15s",
               }}>
                 <div style={{
                   width: 16, height: 16, borderRadius: 4, flexShrink: 0,
                   border: `1.5px solid ${bundleSkillFinder ? "#4CAF82" : "var(--border)"}`,
                   backgroundColor: bundleSkillFinder ? "#4CAF82" : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  transition: "all 0.15s",
+                  display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
                 }}>
-                  {bundleSkillFinder && (
-                    <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}>
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
+                  {bundleSkillFinder && <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
                 </div>
-                <input
-                  type="checkbox"
-                  checked={bundleSkillFinder}
-                  onChange={(e) => setBundleSkillFinder(e.target.checked)}
-                  style={{ display: "none" }}
-                />
+                <input type="checkbox" checked={bundleSkillFinder} onChange={(e) => setBundleSkillFinder(e.target.checked)} style={{ display: "none" }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: bundleSkillFinder ? "#4CAF82" : "var(--text-secondary)" }}>
-                    让小龙虾变得更强！
-                  </span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>
-                    自动发现并推荐最适合任务的 Skills
-                  </span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: bundleSkillFinder ? "#4CAF82" : "var(--text-secondary)" }}>让小龙虾变得更强！</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>自动发现并推荐最适合任务的 Skills</span>
                 </div>
-                <span style={{
-                  fontSize: 10, fontWeight: 600, letterSpacing: "0.04em",
-                  color: "#4CAF82", backgroundColor: "rgba(76,175,130,0.12)",
-                  padding: "2px 7px", borderRadius: 10, flexShrink: 0,
-                }}>
-                  推荐
-                </span>
+                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", color: "#4CAF82", backgroundColor: "rgba(76,175,130,0.12)", padding: "2px 7px", borderRadius: 10, flexShrink: 0 }}>推荐</span>
               </label>
             )}
 
-            {/* Command row(s) */}
-            <div style={{
-              backgroundColor: "var(--accent-dim)", borderRadius: 8, padding: "8px 14px",
-              display: "flex", flexDirection: "column", gap: 6,
-            }}>
-              {!isSkillFinder && bundleSkillFinder && (
-                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                  <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0, minWidth: 24 }}>安装</span>
-                  <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {skillFinderCmd}
-                  </code>
+            {mode === "human" ? (
+              <>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5 }}>
+                  通过 SkillHub 国内镜像加速安装，下载速度更快更稳定。
+                </p>
+                {/* Step 1 */}
+                {[
+                  { label: "第一步：安装 SkillHub CLI", cmd: CLI_INSTALL_CMD, id: "step1" },
+                  ...(!isSkillFinder && bundleSkillFinder ? [{ label: "第二步：安装 SkillFinder", cmd: sfInstallCmd, id: "step2" }] : []),
+                  { label: `${!isSkillFinder && bundleSkillFinder ? "第三步" : "第二步"}：安装技能`, cmd: skillInstallCmd, id: "step3" },
+                ].map(({ label, cmd, id }) => (
+                  <div key={id} style={{ marginBottom: 8 }}>
+                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+                    <div style={{ backgroundColor: "#1a1a1a", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
+                      <span style={{ fontSize: 12, color: "#666", flexShrink: 0 }}>$</span>
+                      <code style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "#e0e0e0", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cmd}</code>
+                      <button
+                        onClick={() => copyText(cmd, id)}
+                        title={copiedId === id ? "已复制" : "复制"}
+                        style={{ flexShrink: 0, background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 5, padding: "3px 8px", cursor: "pointer", color: copiedId === id ? "#4CAF82" : "#aaa", display: "flex", alignItems: "center", gap: 4, fontSize: 11, transition: "color 0.15s" }}
+                      >
+                        {copiedId === id ? (
+                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
+                        ) : (
+                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                        )}
+                        复制
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5 }}>
+                  直接复制以下提示词，发送给你的 AI 助手即可完成安装。
+                </p>
+                <div style={{ position: "relative", backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border)", borderRadius: 8, padding: "14px 50px 14px 14px" }}>
+                  <p style={{ fontSize: 13, color: "var(--text-secondary)", lineHeight: 1.75, margin: 0, whiteSpace: "pre-wrap" }}>{agentText}</p>
+                  <button
+                    onClick={() => copyText(agentText, "agent")}
+                    title={copiedId === "agent" ? "已复制" : "复制"}
+                    style={{ position: "absolute", top: 10, right: 10, background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 6, padding: "4px 8px", cursor: "pointer", color: copiedId === "agent" ? "#4CAF82" : "var(--text-muted)", display: "flex", alignItems: "center", gap: 4, fontSize: 11, transition: "color 0.15s" }}
+                  >
+                    {copiedId === "agent" ? (
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
+                    ) : (
+                      <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                    )}
+                    复制
+                  </button>
                 </div>
-              )}
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0, minWidth: 24 }}>
-                  {!isSkillFinder && bundleSkillFinder ? "　　" : "安装"}
-                </span>
-                <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {currentCommand}
-                </code>
-                <button
-                  onClick={handleCopy}
-                  title={copied ? "已复制" : "复制"}
-                  style={{
-                    flexShrink: 0, background: "none", border: "none",
-                    padding: 2, cursor: "pointer",
-                    color: copied ? "#4CAF82" : "var(--accent)",
-                    display: "flex", alignItems: "center",
-                    transition: "color 0.15s",
-                  }}
-                >
-                  {copied ? (
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}>
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  ) : (
-                    <svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-            </div>
+              </>
+            )}
           </div>
 
           {/* Tabs */}
