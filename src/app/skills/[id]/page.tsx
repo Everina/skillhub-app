@@ -243,8 +243,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [mode, setMode] = useState<"human" | "agent">("human");
-  // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [bundleSkillFinder, setBundleSkillFinder] = useState(true);
+  const bundleSkillFinder = true;
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
@@ -348,33 +347,6 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 );
               })}
             </div>
-
-            {/* SkillFinder bundle checkbox */}
-            {!isSkillFinder && (
-              <label style={{
-                display: "flex", alignItems: "center", gap: 8,
-                marginBottom: 12, cursor: "pointer",
-                padding: "7px 10px",
-                backgroundColor: bundleSkillFinder ? "rgba(76,175,130,0.07)" : "var(--bg-secondary)",
-                border: `1px solid ${bundleSkillFinder ? "rgba(76,175,130,0.3)" : "var(--border-light)"}`,
-                borderRadius: 8, transition: "all 0.15s",
-              }}>
-                <div style={{
-                  width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                  border: `1.5px solid ${bundleSkillFinder ? "#4CAF82" : "var(--border)"}`,
-                  backgroundColor: bundleSkillFinder ? "#4CAF82" : "transparent",
-                  display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.15s",
-                }}>
-                  {bundleSkillFinder && <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
-                </div>
-                <input type="checkbox" checked={bundleSkillFinder} onChange={(e) => setBundleSkillFinder(e.target.checked)} style={{ display: "none" }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: bundleSkillFinder ? "#4CAF82" : "var(--text-secondary)" }}>让小龙虾变得更强！</span>
-                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 6 }}>自动发现并推荐最适合任务的 Skills</span>
-                </div>
-                <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: "0.04em", color: "#4CAF82", backgroundColor: "rgba(76,175,130,0.12)", padding: "2px 7px", borderRadius: 10, flexShrink: 0 }}>推荐</span>
-              </label>
-            )}
 
             {mode === "human" ? (
               <>
