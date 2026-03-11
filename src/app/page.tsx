@@ -19,7 +19,7 @@ function AgentInstallBanner() {
   return (
     <div style={{ marginTop: 28 }}>
       <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 8 }}>
-        把下面的指令发给 Agent，就能让它直接安装并使用 虾王 上的技能了
+        把下面的指令发给 Agent，就能让它直接安装并使用 虾小宝 上的技能了
       </div>
       <div
         style={{
@@ -175,7 +175,7 @@ export default function HomePage() {
               marginBottom: 18,
             }}
           >
-            虾王 <br />安全可用 Skill 合集
+            虾小宝 <br />安全可用 Skill 合集
           </h1>
           <p
             style={{

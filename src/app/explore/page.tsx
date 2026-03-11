@@ -17,7 +17,6 @@ const SAFETY_OPTIONS: { value: SafetyStatus | "all"; label: string; color?: stri
 const SORT_OPTIONS = [
   { value: "popular", label: "最受欢迎" },
   { value: "newest", label: "最新发布" },
-  { value: "stars", label: "最多收藏" },
 ];
 
 function ExploreContent() {
@@ -62,7 +61,7 @@ function ExploreContent() {
 
     if (sort === "popular") list.sort((a, b) => b.installs - a.installs);
     else if (sort === "newest") list.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
-    else if (sort === "stars") list.sort((a, b) => b.totalStars - a.totalStars);
+
 
     return list;
   }, [query, safetyFilter, categoryFilter, ecosystemFilter, sort]);

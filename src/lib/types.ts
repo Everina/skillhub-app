@@ -34,7 +34,6 @@ export interface Skill {
   description: string;
   tags: string[];
   installs: number;
-  totalStars: number;
   author: string;
   authorId: string;
   authorAvatar: string;
