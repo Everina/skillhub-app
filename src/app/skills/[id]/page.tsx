@@ -381,32 +381,34 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 <p style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.5 }}>
                   通过 SkillHub 国内镜像加速安装，下载速度更快更稳定。
                 </p>
-                {/* Step 1 */}
-                {[
-                  { label: "第一步：安装 SkillHub CLI", cmd: CLI_INSTALL_CMD, id: "step1" },
-                  ...(!isSkillFinder && bundleSkillFinder ? [{ label: "第二步：安装 SkillFinder", cmd: sfInstallCmd, id: "step2" }] : []),
-                  { label: `${!isSkillFinder && bundleSkillFinder ? "第三步" : "第二步"}：安装技能`, cmd: skillInstallCmd, id: "step3" },
-                ].map(({ label, cmd, id }) => (
-                  <div key={id} style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-                    <div style={{ backgroundColor: "#1a1a1a", borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 12, color: "#666", flexShrink: 0 }}>$</span>
-                      <code style={{ flex: 1, fontSize: 12, fontWeight: 500, color: "#e0e0e0", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cmd}</code>
-                      <button
-                        onClick={() => copyText(cmd, id)}
-                        title={copiedId === id ? "已复制" : "复制"}
-                        style={{ flexShrink: 0, background: "rgba(255,255,255,0.08)", border: "none", borderRadius: 5, padding: "3px 8px", cursor: "pointer", color: copiedId === id ? "#4CAF82" : "#aaa", display: "flex", alignItems: "center", gap: 4, fontSize: 11, transition: "color 0.15s" }}
-                      >
-                        {copiedId === id ? (
-                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
-                        ) : (
-                          <svg width={13} height={13} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                        )}
-                        复制
-                      </button>
+                {(() => {
+                  const withSF = !isSkillFinder && bundleSkillFinder;
+                  const steps = [
+                    { label: "第一步：安装 SkillHub CLI", cmd: CLI_INSTALL_CMD, id: "step1" },
+                    ...(withSF ? [{ label: "第二步：安装 SkillFinder", cmd: sfInstallCmd, id: "step2" }] : []),
+                    { label: `${withSF ? "第三步" : "第二步"}：安装技能`, cmd: skillInstallCmd, id: "step3" },
+                  ];
+                  return steps.map(({ label, cmd, id }) => (
+                    <div key={id} style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 11, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
+                      <div style={{ backgroundColor: "var(--accent-dim)", borderRadius: 8, padding: "8px 14px", display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)", flexShrink: 0 }}>$</span>
+                        <code style={{ flex: 1, fontSize: 13, fontWeight: 500, color: "var(--accent)", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{cmd}</code>
+                        <button
+                          onClick={() => copyText(cmd, id)}
+                          title={copiedId === id ? "已复制" : "复制"}
+                          style={{ flexShrink: 0, background: "none", border: "none", borderRadius: 5, padding: "3px 6px", cursor: "pointer", color: copiedId === id ? "#4CAF82" : "var(--accent)", display: "flex", alignItems: "center", gap: 4, fontSize: 11, transition: "color 0.15s" }}
+                        >
+                          {copiedId === id ? (
+                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="20 6 9 17 4 12" /></svg>
+                          ) : (
+                            <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                          )}
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ));
+                })()}
               </>
             ) : (
               <>
