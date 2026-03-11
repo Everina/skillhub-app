@@ -243,7 +243,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [mode, setMode] = useState<"human" | "agent">("human");
-  const bundleSkillFinder = true;
+  const bundleSkillFinder = false;
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
