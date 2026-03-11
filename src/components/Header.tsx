@@ -76,6 +76,26 @@ export default function Header() {
               </Link>
             );
           })}
+          <span style={{
+            display: "flex", alignItems: "center", gap: 5,
+            fontSize: 14, fontWeight: 400,
+            color: "var(--text-muted)",
+            padding: "4px 10px",
+            borderRadius: 6,
+            cursor: "default",
+            userSelect: "none",
+          }}>
+            社区
+            <span style={{
+              fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
+              color: "#C9A227", backgroundColor: "rgba(201,162,39,0.12)",
+              border: "1px solid rgba(201,162,39,0.3)",
+              padding: "1px 5px", borderRadius: 4,
+              lineHeight: 1.4,
+            }}>
+              COMING
+            </span>
+          </span>
         </nav>
 
         {/* Contact us */}
