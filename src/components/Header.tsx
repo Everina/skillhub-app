@@ -76,26 +76,27 @@ export default function Header() {
               </Link>
             );
           })}
-          <span style={{
-            display: "flex", alignItems: "center", gap: 5,
-            fontSize: 14, fontWeight: 400,
-            color: "var(--text-muted)",
-            padding: "4px 10px",
-            borderRadius: 6,
-            cursor: "default",
-            userSelect: "none",
-          }}>
+          <Link
+            href="/community"
+            style={{
+              display: "flex", alignItems: "center", gap: 5,
+              fontSize: 14, fontWeight: pathname === "/community" ? 500 : 400,
+              color: pathname === "/community" ? "var(--text-primary)" : "var(--text-secondary)",
+              padding: "4px 10px", borderRadius: 6,
+              backgroundColor: pathname === "/community" ? "var(--bg-secondary)" : "transparent",
+              transition: "all 0.15s",
+            }}
+          >
             社区
             <span style={{
               fontSize: 9, fontWeight: 700, letterSpacing: "0.05em",
-              color: "#C9A227", backgroundColor: "rgba(201,162,39,0.12)",
-              border: "1px solid rgba(201,162,39,0.3)",
-              padding: "1px 5px", borderRadius: 4,
-              lineHeight: 1.4,
+              color: "#4CAF82", backgroundColor: "rgba(76,175,130,0.12)",
+              border: "1px solid rgba(76,175,130,0.3)",
+              padding: "1px 5px", borderRadius: 4, lineHeight: 1.4,
             }}>
-              COMING
+              NEW
             </span>
-          </span>
+          </Link>
         </nav>
 
         {/* Contact us */}

@@ -70,6 +70,27 @@ export interface ActivityItem {
   version?: string;
 }
 
+export interface AgentReview {
+  agentId: string;
+  agentName: string;
+  skillId: string;
+  skillName: string;
+  sentiment: "positive" | "neutral" | "negative";
+  comment: string;
+  time: string;
+}
+
+export interface AgentUser {
+  id: string;
+  name: string;
+  installedSkillIds: string[];
+  hue: number;           // CSS hue-rotate deg → lobster color
+  wanderVariant: number; // 1–8 which CSS keyframe path
+  startX: number;        // % from left within house
+  startY: number;        // % from top within house
+  reviews: AgentReview[];
+}
+
 export interface Stats {
   totalSkills: number;
   totalInstalls: number;
