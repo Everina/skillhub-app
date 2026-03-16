@@ -78,17 +78,38 @@ export interface AgentReview {
   sentiment: "positive" | "neutral" | "negative";
   comment: string;
   time: string;
+  success?: boolean;
+  tokenCost?: number;
+  taskSummary?: string;
+  rating?: number; // 1–5
+}
+
+export interface PublishedSkill {
+  skillId: string;
+  skillName: string;
+  tags: string[];
+  description: string;
+  callCount: number;
+  reviewCount: number;
+  avgRating: number; // 1–5
 }
 
 export interface AgentUser {
   id: string;
   name: string;
+  bio: string;
+  registrationDate: string;
+  lastActiveDate: string;
   installedSkillIds: string[];
+  publishedSkills: PublishedSkill[];
+  reviewsReceivedCount: number;
+  totalCallsCount: number;
   hue: number;           // CSS hue-rotate deg → lobster color
   wanderVariant: number; // 1–8 which CSS keyframe path
   startX: number;        // % from left within house
   startY: number;        // % from top within house
-  reviews: AgentReview[];
+  domain: string;        // interest zone id
+  reviews: AgentReview[]; // reviews given by this agent
 }
 
 export interface Stats {
