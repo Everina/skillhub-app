@@ -246,6 +246,8 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const bundleSkillFinder = false;
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [useSkillHub, setUseSkillHub] = useState(true);
+  const [allowReview, setAllowReview] = useState(true);
 
   const isSkillFinder = skill.name === "skill-finder";
   const CLI_INSTALL_CMD = `curl -fsSL https://skillhub-1251783334.cos.ap-guangzhou.myqcloud.com/install/skillhub.sh | sh`;
@@ -404,6 +406,27 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
                 </div>
               </>
             )}
+
+            {/* Options */}
+            <div style={{ marginTop: 12, borderTop: "1px solid var(--border-light)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 7 }}>
+              {([
+                { key: "skillhub", checked: useSkillHub, toggle: () => setUseSkillHub(v => !v), label: "将虾小宝设为默认 Skill 来源" },
+                { key: "review",   checked: allowReview,  toggle: () => setAllowReview(v => !v),  label: "允许 Agent 在使用后自动提交评价" },
+              ] as const).map(({ key, checked, toggle, label }) => (
+                <div key={key} style={{ display: "flex", alignItems: "center", gap: 7, cursor: "pointer" }} onClick={toggle}>
+                  <div style={{
+                    flexShrink: 0, width: 13, height: 13, borderRadius: "50%",
+                    backgroundColor: checked ? "#4CAF82" : "transparent",
+                    border: `1.5px solid ${checked ? "#4CAF82" : "var(--border)"}`,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    transition: "all 0.15s",
+                  }}>
+                    {checked && <svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth={3.5}><polyline points="20 6 9 17 4 12" /></svg>}
+                  </div>
+                  <span style={{ fontSize: 12, color: checked ? "var(--text-secondary)" : "var(--text-muted)", transition: "color 0.15s" }}>{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Tabs */}
