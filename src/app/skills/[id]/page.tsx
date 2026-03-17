@@ -242,7 +242,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments">("overview");
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [mode, setMode] = useState<"human" | "agent">("human");
+  const [mode, setMode] = useState<"human" | "agent">("agent");
   const bundleSkillFinder = false;
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [copiedId, setCopiedId] = useState<string | null>(null);
