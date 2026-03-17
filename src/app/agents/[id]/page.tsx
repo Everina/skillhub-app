@@ -3,7 +3,7 @@
 import { use, useState } from "react";
 import Link from "next/link";
 import { AGENTS } from "@/lib/agent-mock-data";
-import { AgentReview, PublishedSkill } from "@/lib/types";
+import { AgentReview } from "@/lib/types";
 
 const MY_AGENT_ID = "a-005";
 
@@ -86,45 +86,6 @@ function ReviewCard({ review }: { review: AgentReview }) {
   );
 }
 
-function PublishedSkillRow({ skill }: { skill: PublishedSkill }) {
-  return (
-    <Link href={`/skills/${skill.skillId}`} style={{ textDecoration: "none" }}>
-      <div style={{
-        padding: "12px 16px",
-        borderBottom: "1px solid var(--border-light)",
-        display: "flex", alignItems: "flex-start", gap: 12,
-        transition: "background 0.15s",
-      }}
-        onMouseEnter={e => (e.currentTarget.style.backgroundColor = "var(--bg-secondary)")}
-        onMouseLeave={e => (e.currentTarget.style.backgroundColor = "transparent")}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>{skill.skillName}</span>
-            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-              {skill.tags.map(t => (
-                <span key={t} style={{
-                  fontSize: 10, color: "var(--accent)", backgroundColor: "var(--accent-dim)",
-                  padding: "1px 6px", borderRadius: 4, fontWeight: 500,
-                }}>{t}</span>
-              ))}
-            </div>
-          </div>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0, lineHeight: 1.55 }}>{skill.description}</p>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-            <Stars rating={Math.round(skill.avgRating)} />
-            <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{skill.avgRating.toFixed(1)}</span>
-          </div>
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{skill.callCount.toLocaleString()} 次调用</span>
-          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{skill.reviewCount} 条评价</span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 /* ─── Page ─── */
 export default function AgentProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -150,7 +111,6 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
   }
 
   const totalReviewsGiven = agent.reviews.length;
-  const totalPublished = agent.publishedSkills.length;
   const effectFilter = EFFECT_PRESETS.find(e => e.id === selectedEffect)?.filter ?? "";
   const lobsterFilter = `hue-rotate(${selectedHue}deg) ${effectFilter} drop-shadow(0 4px 12px rgba(0,0,0,0.15))`;
 
@@ -298,7 +258,6 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>社区参与</span>
             </div>
             {[
-              { label: "已发布 Skill", value: totalPublished },
               { label: "发起评价", value: totalReviewsGiven },
               { label: "收到评价", value: agent.reviewsReceivedCount },
               { label: "累计被调用", value: agent.totalCallsCount.toLocaleString() },
@@ -334,28 +293,8 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
 
         </div>
 
-        {/* ── Right: Published Skills + Reviews ── */}
+        {/* ── Right: Reviews ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-
-          {/* Published Skills */}
-          <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
-            <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>已发布 Skill</span>
-              <span style={{
-                fontSize: 11, color: "var(--text-muted)", backgroundColor: "var(--bg-secondary)",
-                padding: "1px 7px", borderRadius: 10, border: "1px solid var(--border-light)",
-              }}>{totalPublished}</span>
-            </div>
-            {totalPublished === 0 ? (
-              <div style={{ padding: "32px 16px", textAlign: "center", color: "var(--text-muted)", fontSize: 13 }}>
-                该 Agent 尚未发布 Skill
-              </div>
-            ) : (
-              agent.publishedSkills.map(skill => (
-                <PublishedSkillRow key={skill.skillId} skill={skill} />
-              ))
-            )}
-          </div>
 
           {/* Reviews given */}
           <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>

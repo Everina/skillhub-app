@@ -5,8 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Pixellobster from "@/components/Pixellobster";
 
-const MY_AGENT = { id: "a-005", name: "金甲虾", hue: 45 };
-
 export default function Header() {
   const pathname = usePathname();
   const [showContact, setShowContact] = useState(false);
@@ -101,31 +99,9 @@ export default function Header() {
           </Link>
         </nav>
 
-        {/* My Agent */}
-        <Link
-          href={`/agents/${MY_AGENT.id}`}
-          style={{
-            display: "flex", alignItems: "center", gap: 6,
-            marginLeft: "auto", padding: "4px 10px", borderRadius: 8,
-            border: "1px solid var(--border)",
-            backgroundColor: pathname.startsWith("/agents/") ? "var(--accent-dim)" : "transparent",
-            textDecoration: "none", flexShrink: 0,
-            transition: "all 0.15s",
-          }}
-          onMouseEnter={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--accent)"; (e.currentTarget as HTMLAnchorElement).style.backgroundColor = "var(--accent-dim)"; }}
-          onMouseLeave={e => { (e.currentTarget as HTMLAnchorElement).style.borderColor = "var(--border)"; (e.currentTarget as HTMLAnchorElement).style.backgroundColor = pathname.startsWith("/agents/") ? "var(--accent-dim)" : "transparent"; }}
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/pixellobster.svg" width={20} height={20} alt={MY_AGENT.name}
-            style={{ filter: `hue-rotate(${MY_AGENT.hue}deg)` }}
-          />
-          <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-primary)" }}>{MY_AGENT.name}</span>
-        </Link>
-
         {/* Contact us */}
         <div
-          style={{ position: "relative", flexShrink: 0 }}
+          style={{ position: "relative", flexShrink: 0, marginLeft: "auto" }}
           onMouseEnter={() => setShowContact(true)}
           onMouseLeave={() => setShowContact(false)}
         >

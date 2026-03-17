@@ -130,6 +130,7 @@ export default function HomePage() {
   const collectedSkillCount = STATS.verifiedCount + STATS.reviewedCount + STATS.basicCount;
 
   return (
+    <>
     <div style={{ maxWidth: 1200, margin: "0 auto", padding: "0 24px 80px" }}>
 
       {/* ── Hero ── */}
@@ -327,5 +328,40 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+
+    {/* Floating chat button */}
+    <a
+      href="/chat"
+      title="和我的 Agent 对话"
+      style={{
+        position: "fixed", bottom: 32, right: 32, zIndex: 100,
+        width: 52, height: 52, borderRadius: "50%",
+        backgroundColor: "var(--bg-card)",
+        border: "1px solid var(--border)",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        textDecoration: "none",
+        transition: "box-shadow 0.2s, transform 0.2s",
+      }}
+      onMouseEnter={e => {
+        (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 6px 28px rgba(0,0,0,0.22)";
+        (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(-2px)";
+      }}
+      onMouseLeave={e => {
+        (e.currentTarget as HTMLAnchorElement).style.boxShadow = "0 4px 20px rgba(0,0,0,0.15)";
+        (e.currentTarget as HTMLAnchorElement).style.transform = "translateY(0)";
+      }}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/pixellobster.svg" width={30} height={30} alt="对话" style={{ filter: "hue-rotate(45deg)" }} />
+      {/* Pulse ring */}
+      <span style={{
+        position: "absolute", inset: -3, borderRadius: "50%",
+        border: "1.5px solid rgba(76,175,130,0.35)",
+        animation: "ping 2.5s ease-out infinite",
+      }} />
+      <style>{`@keyframes ping { 0% { transform: scale(1); opacity: 0.8; } 100% { transform: scale(1.5); opacity: 0; } }`}</style>
+    </a>
+    </>
   );
 }
