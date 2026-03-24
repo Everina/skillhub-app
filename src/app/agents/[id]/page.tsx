@@ -1,11 +1,175 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { AGENTS } from "@/lib/agent-mock-data";
-import { AgentReview } from "@/lib/types";
+import { AgentReview, AgentUser, PublishedSkill } from "@/lib/types";
 
 const MY_AGENT_ID = "a-005";
+
+/* ─── Reputation system ─── */
+const LEVELS = [
+  { name: "探索者", icon: "🌱", min: 0,     max: 499,      color: "#9CA3AF", bg: "rgba(156,163,175,0.12)", border: "rgba(156,163,175,0.3)" },
+  { name: "贡献者", icon: "🌿", min: 500,   max: 1999,     color: "#4CAF82", bg: "rgba(76,175,130,0.12)",  border: "rgba(76,175,130,0.3)"  },
+  { name: "达人",   icon: "⭐", min: 2000,  max: 4999,     color: "#5B8FF9", bg: "rgba(91,143,249,0.12)",  border: "rgba(91,143,249,0.3)"  },
+  { name: "大师",   icon: "💎", min: 5000,  max: 9999,     color: "#A855F7", bg: "rgba(168,85,247,0.12)",  border: "rgba(168,85,247,0.3)"  },
+  { name: "传奇",   icon: "🔥", min: 10000, max: Infinity, color: "#C9A227", bg: "rgba(201,162,39,0.12)",  border: "rgba(201,162,39,0.3)"  },
+];
+
+function computeReputation(agent: AgentUser) {
+  const fromSkills   = agent.publishedSkills.length * 200;
+  const fromInstalls = Math.floor(agent.totalCallsCount * 0.1);
+  const fromReceived = agent.reviewsReceivedCount * 5;
+  const fromGiven    = agent.reviews.length * 10;
+  return { total: fromSkills + fromInstalls + fromReceived + fromGiven, fromSkills, fromInstalls, fromReceived, fromGiven };
+}
+
+function ReputationBar({ agent }: { agent: AgentUser }) {
+  const rep = computeReputation(agent);
+  const levelIdx = LEVELS.findIndex(l => rep.total >= l.min && rep.total <= l.max);
+  const level = LEVELS[levelIdx] ?? LEVELS[LEVELS.length - 1];
+  const nextLevel = LEVELS[levelIdx + 1];
+  const progress = nextLevel
+    ? Math.min((rep.total - level.min) / (nextLevel.min - level.min), 1)
+    : 1;
+
+  const [barWidth, setBarWidth] = useState(0);
+  const [shimmer, setShimmer]   = useState(false);
+  const [displayScore, setDisplayScore] = useState(0);
+
+  useEffect(() => {
+    const rafBar = requestAnimationFrame(() => setBarWidth(progress * 100));
+    // shimmer fires once after bar finishes
+    const shimmerTimer = setTimeout(() => setShimmer(true), 1000);
+    const duration = 900;
+    const target = rep.total;
+    const start = performance.now();
+    let raf: number;
+    const tick = (now: number) => {
+      const t = Math.min((now - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - t, 3);
+      setDisplayScore(Math.round(eased * target));
+      if (t < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(rafBar); cancelAnimationFrame(raf); clearTimeout(shimmerTimer); };
+  }, [rep.total, progress]);
+
+  const breakdown = [
+    { icon: "📦", label: "发布 Skill", value: rep.fromSkills },
+    { icon: "⬇",  label: "安装量",    value: rep.fromInstalls },
+    { icon: "💬", label: "收到评价",  value: rep.fromReceived },
+    { icon: "✍️",  label: "发出评价",  value: rep.fromGiven },
+  ].filter(b => b.value > 0);
+
+  return (
+    <>
+      <style>{`
+        @keyframes rep-shimmer {
+          0%   { transform: translateX(-120%) skewX(-15deg); opacity: 0; }
+          30%  { opacity: 1; }
+          70%  { opacity: 1; }
+          100% { transform: translateX(220%) skewX(-15deg); opacity: 0; }
+        }
+      `}</style>
+      <div style={{
+        backgroundColor: "var(--bg-card)",
+        border: `1px solid ${level.color}55`,
+        borderRadius: 12,
+        overflow: "hidden",
+        background: `linear-gradient(135deg, ${level.color}08 0%, transparent 55%), var(--bg-card)`,
+      }}>
+        {/* Top: icon + level badge + score */}
+        <div style={{ padding: "14px 16px 0" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <span style={{ fontSize: 22, lineHeight: 1 }}>{level.icon}</span>
+            <div>
+              <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
+                <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-primary)", fontVariantNumeric: "tabular-nums", letterSpacing: "-0.02em" }}>
+                  {displayScore.toLocaleString()}
+                </span>
+                <span style={{ fontSize: 11, color: "var(--text-muted)" }}>声望值</span>
+              </div>
+              <span style={{
+                display: "inline-block", marginTop: 2,
+                fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+                color: level.color, backgroundColor: level.bg,
+                border: `1px solid ${level.border}`,
+                padding: "1px 7px", borderRadius: 4,
+              }}>{level.name}</span>
+            </div>
+            {nextLevel && (
+              <div style={{ marginLeft: "auto", textAlign: "right" }}>
+                <div style={{ fontSize: 10, color: "var(--text-muted)", marginBottom: 2 }}>距下一级</div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: nextLevel.color }}>
+                  {nextLevel.icon} {nextLevel.name}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Bar */}
+          <div style={{
+            height: 10, borderRadius: 5,
+            backgroundColor: "var(--bg-secondary)",
+            overflow: "hidden", marginBottom: 6,
+            position: "relative",
+          }}>
+            <div style={{
+              height: "100%", borderRadius: 5,
+              width: `${barWidth}%`,
+              background: `linear-gradient(90deg, ${level.color}88, ${level.color})`,
+              transition: "width 0.95s cubic-bezier(0.16,1,0.3,1)",
+              boxShadow: `0 0 8px ${level.color}55`,
+              position: "relative", overflow: "hidden",
+            }}>
+              {/* Shimmer sweep */}
+              {shimmer && (
+                <div style={{
+                  position: "absolute", top: 0, left: 0, bottom: 0, width: "40%",
+                  background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent)",
+                  animation: "rep-shimmer 0.7s ease forwards",
+                }} />
+              )}
+            </div>
+          </div>
+
+          {/* Progress fraction */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ fontSize: 10, color: "var(--text-muted)", fontVariantNumeric: "tabular-nums" }}>
+              {rep.total.toLocaleString()} / {nextLevel ? nextLevel.min.toLocaleString() : "MAX"}
+            </span>
+            {nextLevel && (
+              <span style={{ fontSize: 10, color: "var(--text-muted)" }}>
+                还差 <span style={{ color: nextLevel.color, fontWeight: 600 }}>{(nextLevel.min - rep.total).toLocaleString()}</span>
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Breakdown table */}
+        <div style={{ borderTop: "1px solid var(--border-light)" }}>
+          <div style={{ padding: "6px 16px 4px", fontSize: 10, color: "var(--text-muted)", fontWeight: 600, letterSpacing: "0.06em" }}>
+            声望来源
+          </div>
+          {breakdown.map((b, i) => (
+            <div key={b.label} style={{
+              display: "flex", alignItems: "center",
+              padding: "7px 16px",
+              borderTop: i === 0 ? "none" : "1px solid var(--border-light)",
+            }}>
+              <span style={{ fontSize: 13, marginRight: 8, lineHeight: 1 }}>{b.icon}</span>
+              <span style={{ fontSize: 12, color: "var(--text-secondary)", flex: 1 }}>{b.label}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: level.color, fontVariantNumeric: "tabular-nums" }}>
+                +{b.value.toLocaleString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
 
 /* ─── Wardrobe data ─── */
 const COLOR_PRESETS = [
@@ -44,6 +208,56 @@ function Stars({ rating }: { rating: number }) {
         <span key={i} style={{ fontSize: 11, color: i <= rating ? "#C9A227" : "var(--border)" }}>★</span>
       ))}
     </span>
+  );
+}
+
+function Stars5({ rating }: { rating: number }) {
+  return (
+    <span style={{ display: "inline-flex", gap: 1 }}>
+      {[1, 2, 3, 4, 5].map(i => (
+        <span key={i} style={{ fontSize: 10, color: i <= Math.round(rating) ? "#C9A227" : "var(--border)" }}>★</span>
+      ))}
+    </span>
+  );
+}
+
+function PublishedSkillCard({ skill }: { skill: PublishedSkill }) {
+  return (
+    <Link href={`/skills/${skill.skillId}`} style={{ textDecoration: "none", display: "block" }}>
+      <div style={{
+        padding: "12px 14px",
+        backgroundColor: "var(--bg-secondary)",
+        border: "1px solid var(--border-light)",
+        borderRadius: 10,
+        transition: "border-color 0.15s",
+      }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-light)")}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 5 }}>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{skill.skillName}</span>
+          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+            {skill.tags.map(t => (
+              <span key={t} style={{
+                fontSize: 10, color: "var(--text-muted)",
+                backgroundColor: "var(--bg-card)", border: "1px solid var(--border-light)",
+                padding: "1px 6px", borderRadius: 4,
+              }}>{t}</span>
+            ))}
+          </div>
+          <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--accent)", fontWeight: 600 }}>
+            {skill.avgRating.toFixed(1)} <Stars5 rating={skill.avgRating} />
+          </span>
+        </div>
+        <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, margin: "0 0 8px" }}>
+          {skill.description}
+        </p>
+        <div style={{ display: "flex", gap: 16 }}>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>⬇ {skill.callCount.toLocaleString()} 次安装</span>
+          <span style={{ fontSize: 11, color: "var(--text-muted)" }}>💬 {skill.reviewCount} 条评价</span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -249,6 +463,9 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
             </p>
           </div>
 
+          {/* Reputation bar */}
+          <ReputationBar agent={agent} />
+
           {/* Stats */}
           <div style={{
             backgroundColor: "var(--bg-card)", border: "1px solid var(--border)",
@@ -293,8 +510,26 @@ export default function AgentProfilePage({ params }: { params: Promise<{ id: str
 
         </div>
 
-        {/* ── Right: Reviews ── */}
+        {/* ── Right: Published skills + Reviews ── */}
         <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+
+          {/* Published skills */}
+          {agent.publishedSkills.length > 0 && (
+            <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--border)", display: "flex", alignItems: "center", gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: "var(--text-primary)" }}>发布的 Skills</span>
+                <span style={{
+                  fontSize: 11, color: "var(--text-muted)", backgroundColor: "var(--bg-secondary)",
+                  padding: "1px 7px", borderRadius: 10, border: "1px solid var(--border-light)",
+                }}>{agent.publishedSkills.length}</span>
+              </div>
+              <div style={{ padding: 14, display: "flex", flexDirection: "column", gap: 10 }}>
+                {agent.publishedSkills.map(skill => (
+                  <PublishedSkillCard key={skill.skillId} skill={skill} />
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Reviews given */}
           <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 14, overflow: "hidden" }}>

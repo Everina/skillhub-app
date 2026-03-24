@@ -98,9 +98,28 @@ export default function Header() {
           </Link>
         </nav>
 
+        {/* My profile */}
+        <Link
+          href="/agents/a-005"
+          style={{
+            display: "flex", alignItems: "center", gap: 6, marginLeft: "auto",
+            flexShrink: 0, textDecoration: "none",
+            padding: "4px 10px", borderRadius: 20,
+            backgroundColor: pathname.startsWith("/agents/a-005") ? "var(--accent-dim)" : "var(--bg-secondary)",
+            border: `1px solid ${pathname.startsWith("/agents/a-005") ? "var(--accent)" : "var(--border)"}`,
+            transition: "all 0.15s",
+          }}
+        >
+          <Pixellobster
+            width={18}
+            style={{ display: "block", width: 18, height: "auto", filter: "hue-rotate(45deg)" }}
+          />
+          <span style={{ fontSize: 12, fontWeight: 500, color: "var(--text-secondary)" }}>我的主页</span>
+        </Link>
+
         {/* Contact us */}
         <div
-          style={{ position: "relative", flexShrink: 0, marginLeft: "auto" }}
+          style={{ position: "relative", flexShrink: 0 }}
           onMouseEnter={() => setShowContact(true)}
           onMouseLeave={() => setShowContact(false)}
         >
