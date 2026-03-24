@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SKILLS, VISIBLE_SKILLS } from "@/lib/mock-data";
@@ -59,7 +59,23 @@ function stepDesc(st: CertStepStatus, label: string): string {
   return `${label}审核进行中`;
 }
 
-function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certifiedSteps: { safety: CertStepStatus; completeness: CertStepStatus; executability: CertStepStatus } } }) {
+const SAFETY_DESC_SHORT: Record<string, string> = {
+  "sc-1": "危险操作识别",
+  "sc-2": "提示注入检测",
+  "sc-3": "模糊指令拦截",
+  "sc-4": "风险命令检测",
+  "sc-5": "恶意代码检测",
+  "sc-6": "绿网安全检测",
+  "sc-7": "API Key 窃取检测",
+};
+
+function SafetyPanel({ skill, certificationDetails, onViewFull }: {
+  skill: { safetyStatus: SafetyStatus; certifiedSteps: { safety: CertStepStatus; completeness: CertStepStatus; executability: CertStepStatus } };
+  certificationDetails?: CertificationDetails;
+  onViewFull?: (step: "safety" | "completeness" | "executability") => void;
+}) {
+  const [expanded, setExpanded] = useState<"safety" | "completeness" | "executability" | null>(null);
+
   const status = skill.safetyStatus;
   const steps = skill.certifiedSteps;
 
@@ -90,22 +106,18 @@ function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certified
       recommendBg: "rgba(155,155,155,0.12)",
     };
 
+  const stepColor = (st: CertStepStatus, accent: string) =>
+    st === "passed" ? accent : st === "failed" ? "#E05C5C" : "#9B9B9B";
+
   return (
     <div style={{ backgroundColor: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 12, overflow: "hidden" }}>
       {/* Header bar */}
       <div style={{ padding: "14px 16px 12px", borderBottom: `1px solid ${cfg.border}` }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-          <span style={{
-            fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase",
-            color: cfg.color, backgroundColor: cfg.recommendBg,
-            padding: "3px 9px", borderRadius: 20,
-          }}>
+          <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase", color: cfg.color, backgroundColor: cfg.recommendBg, padding: "3px 9px", borderRadius: 20 }}>
             {cfg.label}
           </span>
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: cfg.color,
-            backgroundColor: cfg.recommendBg, padding: "3px 9px", borderRadius: 20,
-          }}>
+          <span style={{ fontSize: 11, fontWeight: 600, color: cfg.color, backgroundColor: cfg.recommendBg, padding: "3px 9px", borderRadius: 20 }}>
             {cfg.recommend}
           </span>
         </div>
@@ -113,33 +125,123 @@ function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certified
         <div style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.5 }}>{sub}</div>
       </div>
 
-      {/* Steps */}
-      <div style={{ padding: "12px 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+      {/* Steps — accordion */}
+      <div style={{ padding: "8px 16px 10px", display: "flex", flexDirection: "column", gap: 2 }}>
         {CERT_STEPS.map((s) => {
           const st = steps[s.key];
           const isPassed = st === "passed";
           const isFailed = st === "failed";
-          const iconColor = isPassed ? cfg.color : isFailed ? "#E05C5C" : "#9B9B9B";
+          const iconColor = stepColor(st, cfg.color);
           const statusLabel = isPassed ? "已通过" : isFailed ? "未通过" : "审核中";
           const bgColor = isPassed ? cfg.recommendBg : isFailed ? "rgba(224,92,92,0.1)" : "rgba(155,155,155,0.1)";
-          const borderColor = isPassed ? cfg.border : isFailed ? "rgba(224,92,92,0.3)" : "rgba(155,155,155,0.2)";
+          const borderClr = isPassed ? cfg.border : isFailed ? "rgba(224,92,92,0.3)" : "rgba(155,155,155,0.2)";
+          const isOpen = expanded === s.key;
+          const hasDetail = !!certificationDetails;
+
           return (
-            <div key={s.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <div style={{
-                width: 20, height: 20, borderRadius: "50%", flexShrink: 0,
-                backgroundColor: bgColor, border: `1px solid ${borderColor}`,
-                display: "flex", alignItems: "center", justifyContent: "center",
-              }}>
-                {isPassed && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={cfg.color} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
-                {isFailed && <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="#E05C5C" strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
-                {st === "pending" && <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#9B9B9B", opacity: 0.5 }} />}
+            <div key={s.key}>
+              {/* Row */}
+              <div
+                onClick={() => hasDetail && setExpanded(isOpen ? null : s.key)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "5px 4px", borderRadius: 6, margin: "0 -4px",
+                  cursor: hasDetail ? "pointer" : "default",
+                  transition: "background 0.12s",
+                }}
+                onMouseEnter={e => { if (hasDetail) (e.currentTarget as HTMLDivElement).style.backgroundColor = "rgba(255,255,255,0.05)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.backgroundColor = "transparent"; }}
+              >
+                <div style={{ width: 20, height: 20, borderRadius: "50%", flexShrink: 0, backgroundColor: bgColor, border: `1px solid ${borderClr}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  {isPassed && <svg width={10} height={10} viewBox="0 0 24 24" fill="none" stroke={cfg.color} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
+                  {isFailed && <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="#E05C5C" strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                  {st === "pending" && <div style={{ width: 5, height: 5, borderRadius: "50%", backgroundColor: "#9B9B9B", opacity: 0.5 }} />}
+                </div>
+                <span style={{ fontSize: 13, color: isPassed ? "var(--text-primary)" : "var(--text-muted)", fontWeight: isPassed ? 500 : 400, flex: 1 }}>
+                  {s.label}
+                </span>
+                <span style={{ fontSize: 11, color: iconColor, fontWeight: 500 }}>{statusLabel}</span>
+                {hasDetail && (
+                  <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke={iconColor} strokeWidth={2.5} style={{ opacity: 0.4, flexShrink: 0, transition: "transform 0.2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>
+                    <polyline points="9 18 15 12 9 6" />
+                  </svg>
+                )}
               </div>
-              <span style={{ fontSize: 13, color: isPassed ? "var(--text-primary)" : "var(--text-muted)", fontWeight: isPassed ? 500 : 400 }}>
-                {s.label}
-              </span>
-              <span style={{ marginLeft: "auto", fontSize: 11, color: iconColor, fontWeight: 500 }}>
-                {statusLabel}
-              </span>
+
+              {/* Expanded content */}
+              {isOpen && certificationDetails && (
+                <div style={{ margin: "4px 0 6px 28px", padding: "8px 10px", backgroundColor: "var(--bg-secondary)", borderRadius: 7, border: "1px solid var(--border-light)" }}>
+
+                  {s.key === "safety" && (
+                    <>
+                      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                        {certificationDetails.safety.checks.map((c) => {
+                          const cc = c.status === "passed" ? cfg.color : c.status === "failed" ? "#E05C5C" : "#9B9B9B";
+                          return (
+                            <div key={c.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                              <div style={{ width: 13, height: 13, borderRadius: "50%", flexShrink: 0, border: `1.5px solid ${cc}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                                {c.status === "passed" && <svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke={cc} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
+                                {c.status === "failed" && <svg width={6} height={6} viewBox="0 0 24 24" fill="none" stroke={cc} strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                                {c.status === "pending" && <div style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: cc, opacity: 0.5 }} />}
+                              </div>
+                              <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{SAFETY_DESC_SHORT[c.id] ?? c.name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  )}
+
+                  {s.key === "completeness" && (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      {certificationDetails.completeness.items.map((item) => {
+                        const cc = item.status === "passed" ? cfg.color : item.status === "failed" ? "#E05C5C" : "#9B9B9B";
+                        return (
+                          <div key={item.id} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                            <div style={{ width: 13, height: 13, borderRadius: "50%", flexShrink: 0, border: `1.5px solid ${cc}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              {item.status === "passed" && <svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke={cc} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
+                              {item.status === "failed" && <svg width={6} height={6} viewBox="0 0 24 24" fill="none" stroke={cc} strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+                              {item.status === "pending" && <div style={{ width: 4, height: 4, borderRadius: "50%", backgroundColor: cc, opacity: 0.5 }} />}
+                            </div>
+                            <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{item.name}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {s.key === "executability" && (() => {
+                    const total = certificationDetails.executability.testCases.length;
+                    const passed = certificationDetails.executability.testCases.filter(t => t.passed).length;
+                    const allPass = passed === total;
+                    return (
+                      <div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: allPass ? cfg.color : "#E05C5C" }}>{passed}/{total} 测试通过</span>
+                          {certificationDetails.executability.humanReviewed && (
+                            <span style={{ fontSize: 10, color: cfg.color, backgroundColor: cfg.recommendBg, padding: "1px 6px", borderRadius: 10 }}>人工复检</span>
+                          )}
+                        </div>
+                        <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                          {certificationDetails.executability.testCases.map((tc) => (
+                            <div key={tc.id} title={tc.name} style={{ width: 20, height: 6, borderRadius: 3, backgroundColor: tc.passed ? cfg.color : "#E05C5C", opacity: 0.8 }} />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {onViewFull && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); onViewFull(s.key); }}
+                      style={{ marginTop: 8, background: "none", border: "none", padding: 0, cursor: "pointer", fontSize: 11, color: cfg.color, display: "flex", alignItems: "center", gap: 3, opacity: 0.8 }}
+                    >
+                      查看完整报告
+                      <svg width={9} height={9} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><polyline points="9 18 15 12 9 6" /></svg>
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -148,10 +250,18 @@ function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certified
   );
 }
 
-function CertificationPanel({ details, certifiedSteps }: {
+function CertificationPanel({ details, certifiedSteps, scrollTo, onScrollDone }: {
   details: CertificationDetails;
   certifiedSteps: { safety: CertStepStatus; completeness: CertStepStatus; executability: CertStepStatus };
+  scrollTo?: "safety" | "completeness" | "executability";
+  onScrollDone?: () => void;
 }) {
+  useEffect(() => {
+    if (!scrollTo) return;
+    const el = document.getElementById(`cert-${scrollTo}`);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    onScrollDone?.();
+  }, [scrollTo, onScrollDone]);
   const statusColor = (s: CertStepStatus) =>
     s === "passed" ? "#4CAF82" : s === "failed" ? "#E05C5C" : "#9B9B9B";
   const statusBg = (s: CertStepStatus) =>
@@ -196,7 +306,7 @@ function CertificationPanel({ details, certifiedSteps }: {
     <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
 
       {/* ── Safety ── */}
-      <div>
+      <div id="cert-safety">
         <SectionTitle label="安全性" status={certifiedSteps.safety} date={details.safety.testedAt ? `检测于 ${details.safety.testedAt}` : undefined} />
         <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
           识别未授权文件删除等危险操作；检测在对抗性提示注入下的抗干扰能力；拦截所有缺少执行约束或表述模糊的指令。
@@ -226,7 +336,7 @@ function CertificationPanel({ details, certifiedSteps }: {
       </div>
 
       {/* ── Completeness ── */}
-      <div>
+      <div id="cert-completeness">
         <SectionTitle label="完整性" status={certifiedSteps.completeness} date={details.completeness.testedAt ? `检测于 ${details.completeness.testedAt}` : undefined} />
         <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
           将每个技能的必要前提条件清晰定义，包含文档完整性（readme.md、skill.md）、依赖声明、运行环境及数据配置（AK、Cookie 等）。
@@ -256,7 +366,7 @@ function CertificationPanel({ details, certifiedSteps }: {
       </div>
 
       {/* ── Executability ── */}
-      <div>
+      <div id="cert-executability">
         <SectionTitle label="可执行性" status={certifiedSteps.executability} date={details.executability.testedAt ? `检测于 ${details.executability.testedAt}` : undefined} />
         <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
           将 Skill 投入完全隔离的沙箱环境进行真实演练，验证 skill.md 中声明的能力是否可落地执行。结合 Agent 自动评测与人工复检双重保障。
@@ -418,6 +528,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments" | "cert">("overview");
+  const [certScrollTo, setCertScrollTo] = useState<"safety" | "completeness" | "executability" | undefined>();
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [mode, setMode] = useState<"human" | "agent">("agent");
@@ -652,7 +763,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
 
               {activeTab === "cert" && (
                 skill.certificationDetails
-                  ? <CertificationPanel details={skill.certificationDetails} certifiedSteps={skill.certifiedSteps} />
+                  ? <CertificationPanel details={skill.certificationDetails} certifiedSteps={skill.certifiedSteps} scrollTo={certScrollTo} onScrollDone={() => setCertScrollTo(undefined)} />
                   : (
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", gap: 10 }}>
                       <div style={{ fontSize: 32, opacity: 0.3 }}>🔍</div>
@@ -717,7 +828,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
 
           {/* Safety panel */}
-          <SafetyPanel skill={skill} />
+          <SafetyPanel skill={skill} certificationDetails={skill.certificationDetails} onViewFull={(step) => { setActiveTab("cert"); setCertScrollTo(step); }} />
 
           {/* Meta */}
           <div style={{ backgroundColor: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 10, padding: "16px", display: "flex", flexDirection: "column", gap: 10 }}>
