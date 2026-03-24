@@ -19,6 +19,45 @@ export function deriveStatus(steps: CertifiedSteps): SafetyStatus {
   return "pending";
 }
 
+export interface SafetyCheck {
+  id: string;
+  name: string;
+  status: "passed" | "failed" | "pending";
+}
+
+export interface CompletenessItem {
+  id: string;
+  name: string;
+  detail: string;
+  status: "passed" | "failed" | "pending";
+}
+
+export interface TestCase {
+  id: string;
+  name: string;
+  input: string;
+  expectedOutput: string;
+  actualOutput: string;
+  passed: boolean;
+}
+
+export interface CertificationDetails {
+  safety: {
+    checks: SafetyCheck[];
+    testedAt?: string;
+  };
+  completeness: {
+    items: CompletenessItem[];
+    testedAt?: string;
+  };
+  executability: {
+    testCases: TestCase[];
+    sandboxEnv?: string;
+    humanReviewed?: boolean;
+    testedAt?: string;
+  };
+}
+
 export interface SkillDependency {
   name: string;
   type: "env" | "package" | "tool";
@@ -49,6 +88,7 @@ export interface Skill {
   dependencies?: SkillDependency[];
   certifiedSteps: CertifiedSteps;
   safetyStatus: SafetyStatus; // derived from certifiedSteps for filtering
+  certificationDetails?: CertificationDetails;
 }
 
 export interface Contributor {

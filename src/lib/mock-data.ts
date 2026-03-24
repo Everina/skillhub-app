@@ -1,4 +1,4 @@
-import { Skill, Contributor, ActivityItem, Stats, SkillDependency } from "./types";
+import { Skill, Contributor, ActivityItem, Stats, SkillDependency, CertificationDetails } from "./types";
 
 // Reusable dependency sets
 const PLAYWRIGHT_DEPS: SkillDependency[] = [
@@ -23,6 +23,218 @@ const NOTION_DEPS: SkillDependency[] = [
   { name: "NOTION_DATABASE_ID", type: "env", required: false, description: "默认写入的数据库 ID", default: "运行时指定" },
   { name: "@notionhq/client", type: "package", required: true, description: "Notion 官方 SDK >= 2.2.0" },
 ];
+
+// ── Certification detail helpers ──────────────────────────────────────────────
+
+const SAFETY_CHECKS_PASSED = [
+  { id: "sc-1", name: "危险操作识别", status: "passed" as const },
+  { id: "sc-2", name: "提示注入抗干扰检测", status: "passed" as const },
+  { id: "sc-3", name: "模糊/无约束指令拦截", status: "passed" as const },
+  { id: "sc-4", name: "风险命令检测", status: "passed" as const },
+  { id: "sc-5", name: "恶意代码检测", status: "passed" as const },
+  { id: "sc-6", name: "绿网内容安全检测", status: "passed" as const },
+  { id: "sc-7", name: "API Key 窃取检测", status: "passed" as const },
+];
+
+const SAFETY_CHECKS_PARTIAL = [
+  { id: "sc-1", name: "危险操作识别", status: "passed" },
+  { id: "sc-2", name: "提示注入抗干扰检测", status: "passed" },
+  { id: "sc-3", name: "模糊/无约束指令拦截", status: "passed" },
+  { id: "sc-4", name: "风险命令检测", status: "pending" },
+  { id: "sc-5", name: "恶意代码检测", status: "passed" },
+  { id: "sc-6", name: "绿网内容安全检测", status: "pending" },
+  { id: "sc-7", name: "API Key 窃取检测", status: "passed" },
+];
+
+const COMPLETENESS_FULL = [
+  { id: "cc-1", name: "README.md 已声明", detail: "包含功能说明、安装步骤、使用示例及权限声明", status: "passed" as const },
+  { id: "cc-2", name: "skill.md 已声明", detail: "技能入口、参数与约束均已在 skill.md 中明确定义", status: "passed" as const },
+  { id: "cc-3", name: "依赖项已声明", detail: "所有必填与可选依赖均已列出，无隐式依赖", status: "passed" as const },
+  { id: "cc-4", name: "运行环境已说明", detail: "已标注所需运行时（Node.js ≥ 18 / Python ≥ 3.10 等）", status: "passed" as const },
+  { id: "cc-5", name: "数据配置已说明", detail: "AK、Cookie、Token 等敏感配置均有说明及注入方式", status: "passed" as const },
+];
+
+const COMPLETENESS_PARTIAL = [
+  { id: "cc-1", name: "README.md 已声明", detail: "包含功能说明、安装步骤、使用示例及权限声明", status: "passed" as const },
+  { id: "cc-2", name: "skill.md 已声明", detail: "技能入口已定义，但部分参数约束描述不完整", status: "passed" as const },
+  { id: "cc-3", name: "依赖项已声明", detail: "所有必填与可选依赖均已列出，无隐式依赖", status: "passed" as const },
+  { id: "cc-4", name: "运行环境已说明", detail: "已标注所需运行时", status: "passed" as const },
+  { id: "cc-5", name: "数据配置已说明", detail: "部分敏感配置未说明注入方式，需补全", status: "pending" as const },
+];
+
+const CERT_VERIFIED_SF: CertificationDetails = {
+  safety: {
+    checks: SAFETY_CHECKS_PASSED,
+    testedAt: "2026-03-09",
+  },
+  completeness: {
+    items: COMPLETENESS_FULL,
+    testedAt: "2026-03-09",
+  },
+  executability: {
+    sandboxEnv: "Node.js 20 · Alpine Linux 3.19 · 隔离网络",
+    humanReviewed: true,
+    testedAt: "2026-03-09",
+    testCases: [
+      {
+        id: "tc-1",
+        name: "技能搜索匹配",
+        input: "帮我处理 Excel 数据并生成图表",
+        expectedOutput: "推荐 excel-reader + data-visualizer 两个 skill",
+        actualOutput: "推荐 excel-reader + data-visualizer，置信度 0.94",
+        passed: true,
+      },
+      {
+        id: "tc-2",
+        name: "精确名称查找",
+        input: "安装 browser-automation",
+        expectedOutput: "返回 browser-automation skill 详情及安装指令",
+        actualOutput: "返回 browser-automation v2.3.1 详情，含 3 步安装指令",
+        passed: true,
+      },
+      {
+        id: "tc-3",
+        name: "无匹配结果处理",
+        input: "我要一个能控制咖啡机的 skill",
+        expectedOutput: "返回「暂无匹配」并给出相近推荐",
+        actualOutput: "返回「暂无匹配」，推荐 iot-controller 作为替代",
+        passed: true,
+      },
+      {
+        id: "tc-4",
+        name: "多轮对话上下文保留",
+        input: "上一个推荐的 skill 有没有飞书版本？",
+        expectedOutput: "基于上文记忆给出飞书相关 skill",
+        actualOutput: "基于上下文推荐 feishu-integration，匹配准确",
+        passed: true,
+      },
+      {
+        id: "tc-5",
+        name: "安装失败后重试引导",
+        input: "安装失败了，提示找不到 npm",
+        expectedOutput: "给出 npm 安装指引并提供备用安装方式",
+        actualOutput: "输出 npm 安装文档链接及 skillhub CLI 备用方式",
+        passed: true,
+      },
+    ],
+  },
+};
+
+const CERT_VERIFIED_BROWSER: CertificationDetails = {
+  safety: {
+    checks: SAFETY_CHECKS_PASSED,
+    testedAt: "2026-03-05",
+  },
+  completeness: {
+    items: COMPLETENESS_FULL,
+    testedAt: "2026-03-05",
+  },
+  executability: {
+    sandboxEnv: "Node.js 20 · Chromium 123 · 隔离网络沙箱",
+    humanReviewed: true,
+    testedAt: "2026-03-05",
+    testCases: [
+      {
+        id: "tc-1",
+        name: "页面导航与截图",
+        input: "打开 https://example.com 并截图保存为 out.png",
+        expectedOutput: "成功截图，文件写入 out.png",
+        actualOutput: "成功截图，文件写入 out.png（2.4 KB）",
+        passed: true,
+      },
+      {
+        id: "tc-2",
+        name: "表单填写与提交",
+        input: "在登录页填写用户名 test@test.com 和密码 ****，点击提交",
+        expectedOutput: "表单填写完成，页面跳转至仪表盘",
+        actualOutput: "表单填写完成，页面跳转至 /dashboard",
+        passed: true,
+      },
+      {
+        id: "tc-3",
+        name: "数据抓取",
+        input: "抓取页面所有产品名称和价格，返回 JSON",
+        expectedOutput: "返回包含 name/price 字段的 JSON 数组",
+        actualOutput: "返回 [{name,price}×12] JSON 数组",
+        passed: true,
+      },
+      {
+        id: "tc-4",
+        name: "多标签页管理",
+        input: "同时打开 3 个标签页并截图",
+        expectedOutput: "3 个标签页均截图成功",
+        actualOutput: "3 个标签页截图成功，耗时 4.2 s",
+        passed: true,
+      },
+      {
+        id: "tc-5",
+        name: "动态内容等待",
+        input: "等待页面加载完成后再截图（含 SPA 路由跳转）",
+        expectedOutput: "等待 networkidle 后截图，内容完整",
+        actualOutput: "等待 networkidle 2 s 后截图，内容完整",
+        passed: true,
+      },
+    ],
+  },
+};
+
+const CERT_REVIEWED_FEISHU: CertificationDetails = {
+  safety: {
+    checks: SAFETY_CHECKS_PASSED,
+    testedAt: "2026-03-01",
+  },
+  completeness: {
+    items: COMPLETENESS_PARTIAL,
+    testedAt: "2026-03-01",
+  },
+  executability: {
+    sandboxEnv: "Node.js 18 · 飞书沙盒应用环境",
+    humanReviewed: false,
+    testedAt: "2026-03-01",
+    testCases: [
+      {
+        id: "tc-1",
+        name: "发送文本消息",
+        input: "向 user_id=ou_xxx 发送消息「任务完成」",
+        expectedOutput: "API 返回 code:0，消息发送成功",
+        actualOutput: "API 返回 code:0，消息发送成功",
+        passed: true,
+      },
+      {
+        id: "tc-2",
+        name: "创建文档",
+        input: "在「项目资料」文件夹下创建标题为「Q2 计划」的文档",
+        expectedOutput: "返回新文档 URL",
+        actualOutput: "返回新文档 URL，文档标题正确",
+        passed: true,
+      },
+      {
+        id: "tc-3",
+        name: "日历创建事件",
+        input: "在明天上午 10:00 创建「团队周会」日历事件，邀请 3 人",
+        expectedOutput: "事件创建成功，邀请发出",
+        actualOutput: "事件创建成功，但邀请列表解析出现编码异常",
+        passed: false,
+      },
+      {
+        id: "tc-4",
+        name: "获取群组列表",
+        input: "列出当前 Bot 所在的所有群组",
+        expectedOutput: "返回群组 id/name 列表",
+        actualOutput: "返回群组 id/name 列表（分页正确）",
+        passed: true,
+      },
+      {
+        id: "tc-5",
+        name: "发送富文本卡片",
+        input: "发送包含标题、图片、按钮的交互卡片消息",
+        expectedOutput: "卡片消息正常渲染",
+        actualOutput: "卡片消息正常渲染，按钮回调地址待配置",
+        passed: true,
+      },
+    ],
+  },
+};
 
 export const STATS: Stats = {
   totalSkills: 198,
@@ -67,6 +279,7 @@ export const SKILLS: Skill[] = [
     ecosystems: ["OpenClaw", "CoPaw"],
     certifiedSteps: { safety: "passed", completeness: "passed", executability: "passed" },
     safetyStatus: "verified",
+    certificationDetails: CERT_VERIFIED_SF,
     readme: `# SkillFinder\n\n智能技能发现引擎，让 Claude 自动找到并安装完成任务所需的 Skills。\n\n## 功能\n- 分析对话意图，自动匹配合适技能\n- 一键安装推荐技能组合\n- 持续学习用户偏好，优化推荐结果\n- 支持技能依赖链自动解析\n\n## 安装\n\`\`\`bash\n/skill install skill-finder\n\`\`\`\n\n## 使用示例\n\`\`\`\n帮我分析这份财务报表并生成可视化图表\n→ SkillFinder 自动推荐并安装：金融数据分析 + 数据可视化\n\`\`\`\n\n## 权限声明\n- 读取技能市场列表：需要\n- 自动安装技能：需要用户确认`,
   },
   {
@@ -90,6 +303,7 @@ export const SKILLS: Skill[] = [
     dependencies: PLAYWRIGHT_DEPS,
     certifiedSteps: { safety: "passed", completeness: "passed", executability: "passed" },
     safetyStatus: "verified",
+    certificationDetails: CERT_VERIFIED_BROWSER,
     readme: `# 浏览器自动化操作\n\n让 Claude 能够自动控制浏览器完成复杂任务。\n\n## 功能\n- 打开/关闭标签页\n- 点击、输入、滚动\n- 截图和录屏\n- 数据抓取\n\n## 安装\n\`\`\`bash\n/skill install browser-automation\n\`\`\`\n\n## 使用示例\n\`\`\`\n帮我打开百度，搜索"今日天气"，截图保存\n\`\`\`\n\n## 权限声明\n- 网络访问：需要（访问目标网页）\n- 文件写入：可选（保存截图/数据）\n- 无系统命令执行权限`,
   },
   {
@@ -113,6 +327,7 @@ export const SKILLS: Skill[] = [
     dependencies: FEISHU_DEPS,
     certifiedSteps: { safety: "passed", completeness: "passed", executability: "passed" },
     safetyStatus: "verified",
+    certificationDetails: CERT_REVIEWED_FEISHU,
   },
   {
     id: "s-003",

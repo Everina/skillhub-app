@@ -35,7 +35,6 @@ export default function Header() {
         <Link href="/" style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <Pixellobster
             width={28}
-            height="auto"
             aria-label="Pixel lobster logo"
             style={{ display: "block", width: 28, height: "auto", flexShrink: 0 }}
           />

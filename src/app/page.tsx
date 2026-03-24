@@ -218,7 +218,6 @@ export default function HomePage() {
         <div style={{ display: "flex", alignItems: "center", justifyContent: "center", paddingRight: 16 }}>
           <Pixellobster
             width={500}
-            height="auto"
             aria-label="Pixel lobster"
             style={{ display: "block", maxWidth: "100%", height: "auto" }}
           />

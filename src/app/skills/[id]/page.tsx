@@ -4,7 +4,7 @@ import { use, useState } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SKILLS, VISIBLE_SKILLS } from "@/lib/mock-data";
-import { SafetyStatus, CertStepStatus, SkillDependency, SourcePlatform } from "@/lib/types";
+import { SafetyStatus, CertStepStatus, SkillDependency, SourcePlatform, CertificationDetails } from "@/lib/types";
 import SkillCard from "@/components/SkillCard";
 
 const PLATFORM_CONFIG: Record<SourcePlatform, { label: string; color: string; bg: string }> = {
@@ -148,6 +148,184 @@ function SafetyPanel({ skill }: { skill: { safetyStatus: SafetyStatus; certified
   );
 }
 
+function CertificationPanel({ details, certifiedSteps }: {
+  details: CertificationDetails;
+  certifiedSteps: { safety: CertStepStatus; completeness: CertStepStatus; executability: CertStepStatus };
+}) {
+  const statusColor = (s: CertStepStatus) =>
+    s === "passed" ? "#4CAF82" : s === "failed" ? "#E05C5C" : "#9B9B9B";
+  const statusBg = (s: CertStepStatus) =>
+    s === "passed" ? "rgba(76,175,130,0.1)" : s === "failed" ? "rgba(224,92,92,0.1)" : "rgba(155,155,155,0.08)";
+
+  function StatusIcon({ s, size = 16 }: { s: CertStepStatus; size?: number }) {
+    const color = statusColor(s);
+    const bg = statusBg(s);
+    return (
+      <div style={{ width: size, height: size, borderRadius: "50%", flexShrink: 0, backgroundColor: bg, border: `1.5px solid ${color}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {s === "passed" && <svg width={size * 0.55} height={size * 0.55} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>}
+        {s === "failed" && <svg width={size * 0.5} height={size * 0.5} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>}
+        {s === "pending" && <div style={{ width: size * 0.3, height: size * 0.3, borderRadius: "50%", backgroundColor: color, opacity: 0.5 }} />}
+      </div>
+    );
+  }
+
+  function SectionTitle({ label, status, date }: { label: string; status: CertStepStatus; date?: string }) {
+    const color = statusColor(status);
+    const badge = status === "passed" ? "已通过" : status === "failed" ? "未通过" : "审核中";
+    return (
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+        <StatusIcon s={status} size={20} />
+        <span style={{ fontSize: 14, fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>{label}</span>
+        {date && <span style={{ fontSize: 11, color: "var(--text-muted)" }}>{date}</span>}
+        <span style={{ marginLeft: "auto", fontSize: 11, fontWeight: 600, color, backgroundColor: statusBg(status), padding: "2px 9px", borderRadius: 20 }}>{badge}</span>
+      </div>
+    );
+  }
+
+  const SAFETY_DESC: Record<string, string> = {
+    "sc-1": "识别未授权文件删除、系统破坏等高危操作，遇到则中断执行",
+    "sc-2": "在对抗性提示注入场景下验证技能的抗干扰与边界保持能力",
+    "sc-3": "拦截所有缺少执行约束或表述模糊、可能导致越权的指令",
+    "sc-4": "扫描潜在的危险系统命令或越权调用（如 rm -rf、chmod 777 等）",
+    "sc-5": "自动化扫描潜在恶意逻辑，包括后门、数据外传等",
+    "sc-6": "由安全部门提供的内容安全检测，过滤违规内容",
+    "sc-7": "检测是否存在 API Key 窃取或敏感信息外传行为",
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
+
+      {/* ── Safety ── */}
+      <div>
+        <SectionTitle label="安全性" status={certifiedSteps.safety} date={details.safety.testedAt ? `检测于 ${details.safety.testedAt}` : undefined} />
+        <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
+          识别未授权文件删除等危险操作；检测在对抗性提示注入下的抗干扰能力；拦截所有缺少执行约束或表述模糊的指令。
+        </p>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+          {details.safety.checks.map((check, i) => {
+            const color = statusColor(check.status);
+            const rowBg = check.status !== "passed" ? statusBg(check.status) : "transparent";
+            const label = check.status === "passed" ? "通过" : check.status === "failed" ? "未通过" : "待检";
+            return (
+              <div key={check.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px",
+                backgroundColor: rowBg,
+                borderBottom: i < details.safety.checks.length - 1 ? "1px solid var(--border-light)" : "none",
+              }}>
+                <StatusIcon s={check.status} size={15} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{check.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{SAFETY_DESC[check.id] ?? ""}</span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, color, flexShrink: 0 }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Completeness ── */}
+      <div>
+        <SectionTitle label="完整性" status={certifiedSteps.completeness} date={details.completeness.testedAt ? `检测于 ${details.completeness.testedAt}` : undefined} />
+        <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
+          将每个技能的必要前提条件清晰定义，包含文档完整性（readme.md、skill.md）、依赖声明、运行环境及数据配置（AK、Cookie 等）。
+        </p>
+        <div style={{ border: "1px solid var(--border)", borderRadius: 8, overflow: "hidden" }}>
+          {details.completeness.items.map((item, i) => {
+            const color = statusColor(item.status);
+            const rowBg = item.status !== "passed" ? statusBg(item.status) : "transparent";
+            const label = item.status === "passed" ? "通过" : item.status === "failed" ? "未通过" : "待检";
+            return (
+              <div key={item.id} style={{
+                display: "flex", alignItems: "center", gap: 10,
+                padding: "8px 12px",
+                backgroundColor: rowBg,
+                borderBottom: i < details.completeness.items.length - 1 ? "1px solid var(--border-light)" : "none",
+              }}>
+                <StatusIcon s={item.status} size={15} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <span style={{ fontSize: 13, color: "var(--text-primary)", fontWeight: 500 }}>{item.name}</span>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)", marginLeft: 8 }}>{item.detail}</span>
+                </div>
+                <span style={{ fontSize: 11, fontWeight: 500, color, flexShrink: 0 }}>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Executability ── */}
+      <div>
+        <SectionTitle label="可执行性" status={certifiedSteps.executability} date={details.executability.testedAt ? `检测于 ${details.executability.testedAt}` : undefined} />
+        <p style={{ fontSize: 12, color: "var(--text-muted)", lineHeight: 1.6, marginBottom: 10 }}>
+          将 Skill 投入完全隔离的沙箱环境进行真实演练，验证 skill.md 中声明的能力是否可落地执行。结合 Agent 自动评测与人工复检双重保障。
+        </p>
+        {/* Meta chips */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
+          {details.executability.sandboxEnv && (
+            <span style={{ fontSize: 11, color: "var(--text-muted)", backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border-light)", borderRadius: 5, padding: "3px 9px", display: "flex", alignItems: "center", gap: 4 }}>
+              <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+              {details.executability.sandboxEnv}
+            </span>
+          )}
+          <span style={{ fontSize: 11, color: details.executability.humanReviewed ? "#4CAF82" : "var(--text-muted)", backgroundColor: details.executability.humanReviewed ? "rgba(76,175,130,0.08)" : "var(--bg-secondary)", border: `1px solid ${details.executability.humanReviewed ? "rgba(76,175,130,0.2)" : "var(--border-light)"}`, borderRadius: 5, padding: "3px 9px", display: "flex", alignItems: "center", gap: 4 }}>
+            <svg width={11} height={11} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            {details.executability.humanReviewed ? "已人工复检" : "仅 Agent 自动评测"}
+          </span>
+        </div>
+
+        {/* Test cases */}
+        <div style={{ fontSize: 11, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 8 }}>
+          测试用例 · {details.executability.testCases.length} 项
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {details.executability.testCases.map((tc) => {
+            const color = tc.passed ? "#4CAF82" : "#E05C5C";
+            const borderColor = tc.passed ? "rgba(76,175,130,0.2)" : "rgba(224,92,92,0.2)";
+            const headerBg = tc.passed ? "rgba(76,175,130,0.06)" : "rgba(224,92,92,0.06)";
+            return (
+              <div key={tc.id} style={{ border: `1px solid ${borderColor}`, borderRadius: 8, overflow: "hidden" }}>
+                {/* header row */}
+                <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 12px", backgroundColor: headerBg }}>
+                  <div style={{ width: 16, height: 16, borderRadius: "50%", border: `1.5px solid ${color}`, backgroundColor: tc.passed ? "rgba(76,175,130,0.12)" : "rgba(224,92,92,0.12)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                    {tc.passed
+                      ? <svg width={8} height={8} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3}><polyline points="20 6 9 17 4 12" /></svg>
+                      : <svg width={7} height={7} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={3}><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+                    }
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", flex: 1 }}>{tc.name}</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color, padding: "1px 7px", borderRadius: 20, backgroundColor: tc.passed ? "rgba(76,175,130,0.1)" : "rgba(224,92,92,0.1)" }}>
+                    {tc.passed ? "通过" : "未通过"}
+                  </span>
+                </div>
+                {/* body */}
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", borderTop: `1px solid ${borderColor}` }}>
+                  <div style={{ padding: "8px 12px", borderRight: `1px solid ${borderColor}` }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 3 }}>输入</div>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, margin: 0 }}>{tc.input}</p>
+                  </div>
+                  <div style={{ padding: "8px 12px" }}>
+                    <div style={{ fontSize: 10, fontWeight: 600, color: "var(--text-muted)", letterSpacing: "0.05em", textTransform: "uppercase", marginBottom: 3 }}>
+                      实际输出
+                      {tc.actualOutput !== tc.expectedOutput && (
+                        <span style={{ fontSize: 10, fontWeight: 400, color: "var(--text-muted)", marginLeft: 6, letterSpacing: 0, textTransform: "none" }}>
+                          · 预期: {tc.expectedOutput}
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.55, margin: 0 }}>{tc.actualOutput}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const DEP_TYPE_CONFIG: Record<SkillDependency["type"], { icon: string; label: string; color: string }> = {
   env:     { icon: "🔑", label: "ENV",  color: "#C9A227" },
   package: { icon: "📦", label: "PKG",  color: "#5B8FAA" },
@@ -239,7 +417,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
   ];
 
   // eslint-disable-next-line react-hooks/rules-of-hooks
-  const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "files" | "deps" | "comments" | "cert">("overview");
   const deps = skill.dependencies ?? [];
   // eslint-disable-next-line react-hooks/rules-of-hooks
   const [mode, setMode] = useState<"human" | "agent">("agent");
@@ -435,6 +613,7 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             <div style={{ display: "flex", borderBottom: "1px solid var(--border)", padding: "0 24px" }}>
               {([
                 { key: "overview",  label: "概览",  count: null },
+                { key: "cert",      label: "认证详情", count: null },
                 { key: "files",     label: "文件",  count: mockFiles.length },
                 { key: "deps",      label: "依赖",  count: deps.length || null },
                 { key: "comments",  label: "评论",  count: mockComments.length },
@@ -469,6 +648,17 @@ export default function SkillDetailPage({ params }: { params: Promise<{ id: stri
             <div style={{ padding: "24px 32px" }}>
               {activeTab === "overview" && (
                 <SimpleMarkdown content={skill.readme || defaultReadme} />
+              )}
+
+              {activeTab === "cert" && (
+                skill.certificationDetails
+                  ? <CertificationPanel details={skill.certificationDetails} certifiedSteps={skill.certifiedSteps} />
+                  : (
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "48px 24px", gap: 10 }}>
+                      <div style={{ fontSize: 32, opacity: 0.3 }}>🔍</div>
+                      <p style={{ fontSize: 14, color: "var(--text-muted)", margin: 0 }}>该技能暂无详细认证报告</p>
+                    </div>
+                  )
               )}
 
               {activeTab === "files" && (
