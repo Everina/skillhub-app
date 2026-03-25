@@ -11,10 +11,11 @@ type SkillInfo = { name: string; version: string; rating: number; status: string
 type Message = {
   id: number;
   role: "user" | "agent";
-  type: "text" | "skill-card" | "skillset-card" | "profile-card";
+  type: "text" | "skill-card" | "skillset-card" | "profile-card" | "upload-form" | "upload-success";
   content?: string;
   skill?: SkillInfo;
   skillset?: { skill1: SkillInfo; skill2: SkillInfo; reason: string };
+  uploadResult?: { slug: string; version: string };
 };
 
 const SCRIPT: Message[] = [
@@ -87,9 +88,26 @@ const SCRIPT: Message[] = [
     type: "text",
     content: "两个 Skill 均已通过完整认证，可以放心安装。需要我帮你一键安装这个 Skillset 吗？",
   },
+  {
+    id: 12,
+    role: "user",
+    type: "text",
+    content: "好的，帮我安装吧。另外，我最近自己写了一个 Skill，想上传到虾小宝分享给大家",
+  },
+  {
+    id: 13,
+    role: "agent",
+    type: "text",
+    content: "Skillset 安装完成 ✅\n\n上传自己的 Skill 也完全没问题！填写基本信息并上传压缩包，我帮你提交到虾小宝 👇",
+  },
+  {
+    id: 14,
+    role: "agent",
+    type: "upload-form",
+  },
 ];
 
-const DELAYS = [0, 800, 1800, 3200, 4000, 6000, 8000, 10500, 11300, 12800, 14200, 16500];
+const DELAYS = [0, 800, 1800, 3200, 4000, 6000, 8000, 10500, 11300, 12800, 14200, 16500, 19000, 20200, 21400];
 
 function SkillChip({ skill }: { skill: NonNullable<Message["skill"]> }) {
   return (
@@ -251,7 +269,223 @@ function ProfileCard() {
   );
 }
 
-function Bubble({ msg }: { msg: Message }) {
+const INPUT_STYLE: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box",
+  backgroundColor: "var(--bg-secondary)", border: "1px solid var(--border)",
+  borderRadius: 7, padding: "7px 10px",
+  fontSize: 13, color: "var(--text-primary)",
+  outline: "none", transition: "border-color 0.15s",
+};
+
+function UploadFormCard({ onUploaded }: { onUploaded: (slug: string, version: string) => void }) {
+  const [slug, setSlug]         = useState("");
+  const [version, setVersion]   = useState("");
+  const [desc, setDesc]         = useState("");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [isDragOver, setDragOver] = useState(false);
+  const [status, setStatus]     = useState<"idle" | "uploading" | "done">("idle");
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  const handleFile = (file: File) => {
+    if (file.name.endsWith(".zip")) setFileName(file.name);
+  };
+
+  const handleSubmit = () => {
+    if (!slug.trim() || !version.trim() || status !== "idle") return;
+    setStatus("uploading");
+    setTimeout(() => { setStatus("done"); onUploaded(slug.trim(), version.trim()); }, 1600);
+  };
+
+  if (status === "done") {
+    return (
+      <div style={{
+        backgroundColor: "var(--bg-card)",
+        border: "1px solid rgba(76,175,130,0.4)",
+        borderRadius: 12, padding: "14px 16px", maxWidth: 340,
+        background: "linear-gradient(135deg, var(--bg-card) 0%, rgba(76,175,130,0.04) 100%)",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+          <span style={{ fontSize: 16 }}>✅</span>
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>已提交上传</span>
+        </div>
+        <div style={{
+          backgroundColor: "var(--bg-secondary)", borderRadius: 8, padding: "8px 12px",
+          fontFamily: "monospace", fontSize: 13, color: "var(--text-primary)",
+        }}>
+          {slug}@{version}
+        </div>
+        {fileName && (
+          <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 6 }}>
+            📁 {fileName}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const uploading = status === "uploading";
+
+  return (
+    <div style={{
+      backgroundColor: "var(--bg-card)", border: "1px solid var(--border)",
+      borderRadius: 12, padding: "16px", maxWidth: 340, width: "100%",
+    }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+        <span style={{
+          fontSize: 10, fontWeight: 700, letterSpacing: "0.06em",
+          color: "var(--accent)", backgroundColor: "var(--accent-dim)",
+          border: "1px solid rgba(var(--accent-rgb, 91,143,249),0.3)",
+          padding: "2px 8px", borderRadius: 4,
+        }}>上传 SKILL</span>
+        <span style={{ fontSize: 11, color: "var(--text-muted)" }}>填写信息并附上压缩包</span>
+      </div>
+
+      {/* Slug */}
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, display: "block", marginBottom: 4 }}>
+          Slug <span style={{ color: "#E05C5C" }}>*</span>
+        </label>
+        <input
+          value={slug} onChange={e => setSlug(e.target.value)}
+          placeholder="my-awesome-skill"
+          disabled={uploading}
+          style={INPUT_STYLE}
+          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
+        />
+      </div>
+
+      {/* Version */}
+      <div style={{ marginBottom: 10 }}>
+        <label style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, display: "block", marginBottom: 4 }}>
+          Version <span style={{ color: "#E05C5C" }}>*</span>
+        </label>
+        <input
+          value={version} onChange={e => setVersion(e.target.value)}
+          placeholder="1.0.0"
+          disabled={uploading}
+          style={INPUT_STYLE}
+          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
+        />
+      </div>
+
+      {/* Description */}
+      <div style={{ marginBottom: 12 }}>
+        <label style={{ fontSize: 11, color: "var(--text-muted)", fontWeight: 600, display: "block", marginBottom: 4 }}>
+          简介 <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>（可选）</span>
+        </label>
+        <textarea
+          value={desc} onChange={e => setDesc(e.target.value)}
+          placeholder="一句话描述这个 Skill 的用途…"
+          rows={2}
+          disabled={uploading}
+          style={{ ...INPUT_STYLE, resize: "none", lineHeight: 1.55 }}
+          onFocus={e => (e.currentTarget.style.borderColor = "var(--accent)")}
+          onBlur={e => (e.currentTarget.style.borderColor = "var(--border)")}
+        />
+      </div>
+
+      {/* Drop zone */}
+      <div
+        onClick={() => !uploading && fileRef.current?.click()}
+        onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={e => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+        style={{
+          border: `1.5px dashed ${isDragOver ? "var(--accent)" : "var(--border)"}`,
+          borderRadius: 8, padding: "14px 12px",
+          textAlign: "center", cursor: uploading ? "default" : "pointer",
+          backgroundColor: isDragOver ? "var(--accent-dim)" : "var(--bg-secondary)",
+          transition: "all 0.15s", marginBottom: 12,
+        }}
+      >
+        <input ref={fileRef} type="file" accept=".zip" style={{ display: "none" }}
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
+        {fileName ? (
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 7 }}>
+            <span style={{ fontSize: 16 }}>📦</span>
+            <span style={{ fontSize: 12, color: "var(--text-primary)", fontWeight: 500 }}>{fileName}</span>
+            <button onClick={e => { e.stopPropagation(); setFileName(null); }} style={{
+              background: "none", border: "none", cursor: "pointer", padding: "0 2px",
+              color: "var(--text-muted)", fontSize: 13, lineHeight: 1,
+            }}>✕</button>
+          </div>
+        ) : (
+          <>
+            <div style={{ fontSize: 20, marginBottom: 4 }}>📁</div>
+            <div style={{ fontSize: 12, color: "var(--text-secondary)", fontWeight: 500 }}>点击选择或拖入 .zip 压缩包</div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>只支持 .zip 格式</div>
+          </>
+        )}
+      </div>
+
+      {/* Submit */}
+      <button
+        onClick={handleSubmit}
+        disabled={!slug.trim() || !version.trim() || uploading}
+        style={{
+          width: "100%", padding: "9px 0", borderRadius: 8,
+          backgroundColor: (!slug.trim() || !version.trim() || uploading) ? "var(--bg-secondary)" : "var(--accent)",
+          border: `1px solid ${(!slug.trim() || !version.trim() || uploading) ? "var(--border)" : "var(--accent)"}`,
+          color: (!slug.trim() || !version.trim() || uploading) ? "var(--text-muted)" : "#fff",
+          fontSize: 13, fontWeight: 600, cursor: (!slug.trim() || !version.trim() || uploading) ? "not-allowed" : "pointer",
+          transition: "all 0.15s", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+        }}
+      >
+        {uploading ? (
+          <>
+            <span style={{ display: "inline-block", animation: "spin 0.8s linear infinite" }}>⟳</span>
+            上传中…
+          </>
+        ) : "上传到虾小宝 →"}
+      </button>
+    </div>
+  );
+}
+
+function UploadSuccessCard({ slug, version }: { slug: string; version: string }) {
+  return (
+    <div style={{
+      backgroundColor: "var(--bg-card)", border: "1px solid rgba(76,175,130,0.35)",
+      borderRadius: 12, padding: "14px 16px", maxWidth: 320,
+      background: "linear-gradient(135deg, var(--bg-card) 0%, rgba(76,175,130,0.04) 100%)",
+    }}>
+      <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 10 }}>
+        Skill 已提交，等待安全认证通过后上架
+      </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 5, marginBottom: 12 }}>
+        {[
+          { icon: "📦", text: `${slug}@${version} 已进入认证队列` },
+          { icon: "🔒", text: "安全性检测中（通常 < 10 分钟）" },
+          { icon: "🌐", text: "通过后自动发布至虾小宝市场" },
+        ].map(({ icon, text }) => (
+          <div key={text} style={{ display: "flex", alignItems: "flex-start", gap: 7 }}>
+            <span style={{ fontSize: 13, flexShrink: 0 }}>{icon}</span>
+            <span style={{ fontSize: 12, color: "var(--text-secondary)", lineHeight: 1.5 }}>{text}</span>
+          </div>
+        ))}
+      </div>
+      <Link
+        href={`/agents/${MY_AGENT.id}`}
+        style={{
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+          padding: "7px 0", borderRadius: 7,
+          backgroundColor: "rgba(76,175,130,0.12)", border: "1px solid rgba(76,175,130,0.3)",
+          color: "#4CAF82", fontSize: 13, fontWeight: 600,
+          textDecoration: "none", transition: "all 0.15s",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/pixellobster.svg" width={14} height={14} alt="" style={{ filter: "hue-rotate(45deg)" }} />
+        查看我的 Agent 主页 →
+      </Link>
+    </div>
+  );
+}
+
+function Bubble({ msg, onUploaded }: { msg: Message; onUploaded?: (slug: string, version: string) => void }) {
   const isUser = msg.role === "user";
   return (
     <div style={{
@@ -284,6 +518,10 @@ function Bubble({ msg }: { msg: Message }) {
       {msg.type === "skill-card" && msg.skill && <SkillChip skill={msg.skill} />}
       {msg.type === "skillset-card" && msg.skillset && <SkillsetCard skillset={msg.skillset} />}
       {msg.type === "profile-card" && <ProfileCard />}
+      {msg.type === "upload-form" && onUploaded && <UploadFormCard onUploaded={onUploaded} />}
+      {msg.type === "upload-success" && msg.uploadResult && (
+        <UploadSuccessCard slug={msg.uploadResult.slug} version={msg.uploadResult.version} />
+      )}
     </div>
   );
 }
@@ -313,13 +551,13 @@ function TypingIndicator() {
 export default function ChatPage() {
   const [visible, setVisible] = useState<number[]>([]);
   const [typing, setTyping] = useState(false);
+  const [extraMessages, setExtraMessages] = useState<Message[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const timers: ReturnType<typeof setTimeout>[] = [];
     SCRIPT.forEach((msg, i) => {
       if (msg.role === "agent" && i > 0) {
-        // show typing before agent message
         timers.push(setTimeout(() => setTyping(true), DELAYS[i] - 600));
       }
       timers.push(setTimeout(() => {
@@ -329,6 +567,22 @@ export default function ChatPage() {
     });
     return () => timers.forEach(clearTimeout);
   }, []);
+
+  const handleUploaded = (slug: string, version: string) => {
+    const msgs: Message[] = [
+      { id: 200, role: "agent", type: "text",
+        content: `正在上传并校验 \`${slug}@${version}\`，稍等片刻……` },
+      { id: 201, role: "agent", type: "text",
+        content: `🎉 上传成功！\`${slug}@${version}\` 已提交认证队列，通过安全检测后自动上架到虾小宝。` },
+      { id: 202, role: "agent", type: "upload-success", uploadResult: { slug, version } },
+    ];
+    setExtraMessages(msgs);
+    setTimeout(() => setTyping(true), 100);
+    setTimeout(() => { setTyping(false); setVisible(v => [...v, 200]); }, 1200);
+    setTimeout(() => setTyping(true), 1800);
+    setTimeout(() => { setTyping(false); setVisible(v => [...v, 201]); }, 3200);
+    setTimeout(() => { setVisible(v => [...v, 202]); }, 3600);
+  };
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -340,6 +594,10 @@ export default function ChatPage() {
         @keyframes bounce {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
           30% { transform: translateY(-5px); opacity: 1; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
 
@@ -371,8 +629,8 @@ export default function ChatPage() {
           flex: 1, overflowY: "auto", paddingTop: 24,
           display: "flex", flexDirection: "column", gap: 16,
         }}>
-          {SCRIPT.filter(m => visible.includes(m.id)).map(msg => (
-            <Bubble key={msg.id} msg={msg} />
+          {[...SCRIPT, ...extraMessages].filter(m => visible.includes(m.id)).map(msg => (
+            <Bubble key={msg.id} msg={msg} onUploaded={handleUploaded} />
           ))}
           {typing && <TypingIndicator />}
           <div ref={bottomRef} />
